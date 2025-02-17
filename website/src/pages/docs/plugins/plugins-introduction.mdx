@@ -1,6 +1,6 @@
 ---
 description:
-  Discover a world of possibilities with GraphQL Mesh plugins! Extend your capabilities with mock,
+  Discover a world of possibilities with Gateway plugins! Extend your capabilities with mock,
   caching, and more. Envelop also offers customizable plugins for a faster GraphQL API.
 ---
 
@@ -8,7 +8,7 @@ import { Callout } from '@theguild/components'
 
 # Plugins
 
-GraphQL Mesh can gain new capabilities by using plugins.
+The gateway can gain new capabilities by using plugins.
 
 ```yaml filename=".meshrc.yaml"
 plugins:
@@ -73,7 +73,7 @@ import { useDepthLimit } from '@envelop/depth-limit'
 import { useSentry } from '@envelop/sentry'
 import { MeshPlugin } from '@graphql-mesh/types'
 
-const plugins: MeshPlugin = [
+const plugins: MeshPlugin<any>[] = [
   useDepthLimit({
     maxDepth: 10
   }),
@@ -100,6 +100,13 @@ Mesh provides each plugin with unique hooks:
 
 These hooks have access to all remote execution parameters (root, args, context, info etc).
 
+Mesh plugins also support all
+[envelop hooks](https://the-guild.dev/graphql/envelop/v4/plugins/lifecycle) and a custom plugin can
+make use of a mix of envelop hooks and the mesh specific hooks.
+
+Unlike envelop hooks `onFetch` and `onDelegate` do not have a `extendContext` function, but the same
+can be achieved by modifying the context object that is accessible in all hooks.
+
 Example Mesh Envelop plugin therefore can look like this:
 
 ```ts
@@ -114,9 +121,19 @@ export default function customMeshPlugin(options: MeshPluginOptions<YourConfig>)
     },
     onDelegate(payload) {
       // your logic with payload
+    },
+    onExecute(payload) {
+      // your logic with payload
     }
   }
 }
+```
+
+To use a custom plugin that is in the same codebase:
+
+```yaml filename=".meshrc.yaml"
+plugins:
+  - ./path/to/plugin: # path to custom plugin instead of just plugin name
 ```
 
 Usage of plugin and Native Envelop hooks are described in

@@ -1,5 +1,88 @@
 # @graphql-mesh/string-interpolation
 
+## 0.5.8
+
+### Patch Changes
+
+- [#8301](https://github.com/ardatan/graphql-mesh/pull/8301)
+  [`78c202e`](https://github.com/ardatan/graphql-mesh/commit/78c202ef8824607e27de1dcc5076c82a02ef86cd)
+  Thanks [@ardatan](https://github.com/ardatan)! - Avoid logging sensitive data directly. Instead,
+  log a generic error message without including the potentially sensitive str variable. This way, it
+  still notifies of errors without risking the exposure of sensitive information.
+
+  - Replace the logging statement on line 176 in `packages/string-interpolation/src/interpolator.js`
+    to avoid logging the `str` variable.
+  - Ensure that the new logging statement provides enough information to debug the issue without
+    exposing sensitive data.
+
+## 0.5.7
+
+### Patch Changes
+
+- [#8092](https://github.com/ardatan/graphql-mesh/pull/8092)
+  [`2ef651a`](https://github.com/ardatan/graphql-mesh/commit/2ef651a8356b560478f1847399bad975a0c3f0b9)
+  Thanks [@ardatan](https://github.com/ardatan)! - dependencies updates:
+  - Added dependency [`tslib@^2.4.0` ↗︎](https://www.npmjs.com/package/tslib/v/2.4.0) (to
+    `dependencies`)
+  - Removed dependency [`tslib@^2.4.0` ↗︎](https://www.npmjs.com/package/tslib/v/2.4.0) (from
+    `peerDependencies`)
+
+## 0.5.6
+
+### Patch Changes
+
+- [#7543](https://github.com/ardatan/graphql-mesh/pull/7543)
+  [`13fa835`](https://github.com/ardatan/graphql-mesh/commit/13fa835036c3671305fc831fa236f110c33d9965)
+  Thanks [@renovate](https://github.com/apps/renovate)! - dependencies updates:
+  - Updated dependency [`dayjs@1.11.13` ↗︎](https://www.npmjs.com/package/dayjs/v/1.11.13) (from
+    `1.11.12`, in `dependencies`)
+
+## 0.5.5
+
+### Patch Changes
+
+- [#7311](https://github.com/ardatan/graphql-mesh/pull/7311)
+  [`b01f3ea`](https://github.com/ardatan/graphql-mesh/commit/b01f3eabdc42d8905e8d586a4845e8394c094033)
+  Thanks [@renovate](https://github.com/apps/renovate)! - dependencies updates:
+
+  - Updated dependency [`dayjs@1.11.12` ↗︎](https://www.npmjs.com/package/dayjs/v/1.11.12) (from
+    `1.11.11`, in `dependencies`)
+
+- [#7323](https://github.com/ardatan/graphql-mesh/pull/7323)
+  [`0bdc18d`](https://github.com/ardatan/graphql-mesh/commit/0bdc18df3d150a61abf987b8829934ed4ca02eed)
+  Thanks [@renovate](https://github.com/apps/renovate)! - dependencies updates:
+  - Updated dependency [`dayjs@1.11.12` ↗︎](https://www.npmjs.com/package/dayjs/v/1.11.12) (from
+    `1.11.11`, in `dependencies`)
+
+## 0.5.4
+
+### Patch Changes
+
+- [#6904](https://github.com/ardatan/graphql-mesh/pull/6904)
+  [`3d88cb8`](https://github.com/ardatan/graphql-mesh/commit/3d88cb8ff1829081411fcb2051ad18d7f89536ba)
+  Thanks [@renovate](https://github.com/apps/renovate)! - dependencies updates:
+  - Updated dependency [`dayjs@1.11.11` ↗︎](https://www.npmjs.com/package/dayjs/v/1.11.11) (from
+    `1.11.10`, in `dependencies`)
+
+## 0.5.3
+
+### Patch Changes
+
+- [#6138](https://github.com/ardatan/graphql-mesh/pull/6138)
+  [`b4d38c55d`](https://github.com/ardatan/graphql-mesh/commit/b4d38c55df8c4d2aeb98325555979eb09d065906)
+  Thanks [@Pagebakers](https://github.com/Pagebakers)! - Fixed issue where applyRule() would handle
+  falsy replacements incorrectly
+
+## 0.5.2
+
+### Patch Changes
+
+- [#5982](https://github.com/Urigo/graphql-mesh/pull/5982)
+  [`8e1056cf9`](https://github.com/Urigo/graphql-mesh/commit/8e1056cf91b0e7069499f5102aaed163a0168597)
+  Thanks [@renovate](https://github.com/apps/renovate)! - dependencies updates:
+  - Updated dependency [`dayjs@1.11.10` ↗︎](https://www.npmjs.com/package/dayjs/v/1.11.10) (from
+    `1.11.9`, in `dependencies`)
+
 ## 0.5.1
 
 ### Patch Changes

@@ -1,10 +1,10 @@
 {
   "name": "@graphql-mesh/cache-localforage",
-  "version": "0.95.2",
+  "version": "0.103.18",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "Urigo/graphql-mesh",
+    "url": "ardatan/graphql-mesh",
     "directory": "packages/cache/localforage"
   },
   "license": "MIT",
@@ -32,13 +32,14 @@
   },
   "typings": "dist/typings/index.d.ts",
   "peerDependencies": {
-    "@graphql-mesh/types": "^0.95.2",
-    "@graphql-mesh/utils": "^0.95.2",
-    "graphql": "*",
-    "tslib": "^2.4.0"
+    "graphql": "*"
   },
   "dependencies": {
-    "localforage": "1.10.0"
+    "@graphql-mesh/cache-inmemory-lru": "^0.0.13",
+    "@graphql-mesh/types": "^0.103.17",
+    "@graphql-mesh/utils": "^0.103.17",
+    "localforage": "1.10.0",
+    "tslib": "^2.4.0"
   },
   "publishConfig": {
     "access": "public",

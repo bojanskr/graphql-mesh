@@ -1,0 +1,10 @@
+{
+  "name": "@e2e/manual-transport-def",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@graphql-hive/gateway": "^1.8.0",
+    "fets": "0.8.4",
+    "graphql": "16.10.0"
+  }
+}

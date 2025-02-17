@@ -2,7 +2,7 @@ import { join } from 'path';
 import { findAndParseConfig } from '@graphql-mesh/cli';
 import { createMeshHTTPHandler, MeshHTTPHandler } from '@graphql-mesh/http';
 import { getMesh, MeshInstance } from '@graphql-mesh/runtime';
-import { isAsyncIterable, printSchemaWithDirectives } from '@graphql-tools/utils';
+import { fakePromise, isAsyncIterable, printSchemaWithDirectives } from '@graphql-tools/utils';
 import { createApi } from '../api/app';
 
 describe('JSON Schema Subscriptions', () => {
@@ -22,7 +22,7 @@ describe('JSON Schema Subscriptions', () => {
     });
     meshHttp = createMeshHTTPHandler({
       baseDir,
-      getBuiltMesh: () => Promise.resolve(mesh),
+      getBuiltMesh: () => fakePromise(mesh),
     });
     const api = createApi(meshHttp.fetch as any);
   });
@@ -82,7 +82,7 @@ describe('JSON Schema Subscriptions', () => {
       }
     `;
 
-    const queryResult = await mesh.execute(query, {});
+    const queryResult = await mesh.execute(query);
     expect(queryResult).toMatchObject({
       data: {
         todos: [

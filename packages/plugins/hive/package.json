@@ -1,10 +1,10 @@
 {
   "name": "@graphql-mesh/plugin-hive",
-  "version": "0.95.2",
+  "version": "0.103.23",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "Urigo/graphql-mesh",
+    "url": "ardatan/graphql-mesh",
     "directory": "packages/plugins/hive"
   },
   "license": "MIT",
@@ -32,17 +32,19 @@
   },
   "typings": "dist/typings/index.d.ts",
   "peerDependencies": {
-    "@graphql-mesh/cross-helpers": "^0.4.0",
-    "@graphql-mesh/types": "^0.95.2",
-    "graphql": "*",
-    "tslib": "^2.4.0"
+    "graphql": "*"
   },
   "dependencies": {
-    "@graphql-hive/client": "0.24.1",
-    "@graphql-mesh/string-interpolation": "0.5.1"
+    "@graphql-hive/core": "^0.9.0",
+    "@graphql-hive/yoga": "^0.40.0",
+    "@graphql-mesh/cross-helpers": "^0.4.10",
+    "@graphql-mesh/string-interpolation": "^0.5.8",
+    "@graphql-mesh/types": "^0.103.21",
+    "graphql-yoga": "^5.12.0",
+    "tslib": "^2.4.0"
   },
   "devDependencies": {
-    "@types/http-cache-semantics": "4.0.1"
+    "graphql": "16.10.0"
   },
   "publishConfig": {
     "access": "public",

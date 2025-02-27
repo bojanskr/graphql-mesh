@@ -1,0 +1,23 @@
+{
+  "name": "@examples-v1-next/auth0",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "compose": "node ../../packages/compose-cli/dist/esm/bin.js",
+    "pretest": "npm run compose",
+    "start": "npx hive-gateway",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@envelop/auth0": "^7.0.0",
+    "@envelop/core": "^5.1.0",
+    "@graphql-hive/gateway": "^1.8.0",
+    "@graphql-mesh/compose-cli": "workspace:^",
+    "@graphql-mesh/plugin-operation-field-permissions": "^0.103.22",
+    "@omnigraph/json-schema": "workspace:^",
+    "graphql": "16.10.0"
+  },
+  "devDependencies": {
+    "jest": "29.7.0"
+  }
+}

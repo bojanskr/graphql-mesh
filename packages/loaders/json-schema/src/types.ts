@@ -1,10 +1,10 @@
-import { OperationTypeNode } from 'graphql';
-import { PromiseOrValue } from 'graphql/jsutils/PromiseOrValue';
-import { JSONSchema, JSONSchemaObject } from 'json-machete';
-import { IStringifyOptions } from 'qs';
-import { ResolverData } from '@graphql-mesh/string-interpolation';
-import { Logger, MeshFetch, MeshPubSub } from '@graphql-mesh/types';
-import { BaseLoaderOptions } from '@graphql-tools/utils';
+import type { GraphQLScalarType, OperationTypeNode } from 'graphql';
+import type { PromiseOrValue } from 'graphql/jsutils/PromiseOrValue.js';
+import type { JSONSchema, JSONSchemaObject } from 'json-machete';
+import type { IStringifyOptions } from 'qs';
+import type { ResolverData } from '@graphql-mesh/string-interpolation';
+import type { Logger, MeshFetch, MeshPubSub } from '@graphql-mesh/types';
+import type { BaseLoaderOptions } from '@graphql-tools/utils';
 
 export interface JSONSchemaLoaderOptions extends BaseLoaderOptions {
   endpoint?: string;
@@ -18,8 +18,10 @@ export interface JSONSchemaLoaderOptions extends BaseLoaderOptions {
   fetch?: MeshFetch;
   ignoreErrorResponses?: boolean;
   queryParams?: Record<string, string | number | boolean>;
-  queryStringOptions?: IStringifyOptions;
+  queryStringOptions?: IStringifyOptions & { jsonStringify?: boolean };
+  handlerName?: string;
   bundle?: boolean;
+  getScalarForFormat?: (format: string) => GraphQLScalarType | void;
 }
 
 export interface JSONSchemaOperationResponseConfig {
@@ -39,12 +41,14 @@ export interface JSONSchemaLinkConfig {
 }
 
 export type JSONSchemaBaseOperationConfig = {
-  type: OperationTypeNode;
+  type: OperationTypeNode | 'Query' | 'Mutation' | 'Subscription';
   field: string;
   description?: string;
 
   argTypeMap?: Record<string, string | JSONSchemaObject>;
   responseByStatusCode?: Record<string, JSONSchemaOperationResponseConfig>;
+
+  deprecated?: boolean;
 } & JSONSchemaOperationResponseConfig;
 
 export type JSONSchemaBaseOperationConfigWithJSONRequest = JSONSchemaBaseOperationConfig & {
@@ -71,8 +75,13 @@ export type JSONSchemaHTTPBaseOperationConfig = JSONSchemaBaseOperationConfig & 
 
   headers?: Record<string, string>;
   queryParamArgMap?: Record<string, string>;
-  queryStringOptionsByParam?: Record<string, IStringifyOptions & { destructObject?: boolean }>;
+  queryStringOptionsByParam?: Record<
+    string,
+    IStringifyOptions & { destructObject?: boolean; jsonStringify?: boolean }
+  >;
   queryParamsSample?: any;
+
+  jsonApiFields?: boolean;
 };
 
 export type JSONSchemaHTTPJSONOperationConfig = JSONSchemaHTTPBaseOperationConfig &

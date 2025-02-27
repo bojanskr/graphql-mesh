@@ -1,0 +1,8 @@
+{
+  "name": "@e2e/reprod-shareable",
+  "private": true,
+  "dependencies": {
+    "@graphql-mesh/compose-cli": "workspace:*",
+    "graphql": "^16.10.0"
+  }
+}

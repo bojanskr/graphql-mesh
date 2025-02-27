@@ -1,22 +1,22 @@
 /* eslint-disable import/no-extraneous-dependencies */
 
-import LocalforageCache from '@graphql-mesh/cache-localforage';
-import { createMeshHTTPHandler, MeshHTTPHandler } from '@graphql-mesh/http';
+import InMemoryLRUCache from '@graphql-mesh/cache-inmemory-lru';
+import { createMeshHTTPHandler, type MeshHTTPHandler } from '@graphql-mesh/http';
 import type { MeshInstance } from '@graphql-mesh/runtime';
 import { defaultImportFn, DefaultLogger, PubSub } from '@graphql-mesh/utils';
 import { TestAgent } from '@newrelic/test-utilities';
-import { getTestMesh } from '../../../testing/getTestMesh';
-import useMeshNewRelic from '../src';
+import { getTestMesh } from '../../../legacy/testing/getTestMesh.js';
+import { dummyLogger as logger } from '../../../testing/dummyLogger';
+import useMeshNewRelic from '../src/index.js';
 
 describe('New Relic', () => {
   let mesh: MeshInstance;
   let helper: any;
   let httpHandler: MeshHTTPHandler;
+  using cache = new InMemoryLRUCache();
+  const pubsub = new PubSub();
+  const baseDir = __dirname;
   beforeAll(async () => {
-    const logger = new DefaultLogger('New Relic Test');
-    const cache = new LocalforageCache();
-    const pubsub = new PubSub();
-    const baseDir = __dirname;
     helper = TestAgent.makeInstrumented();
     mesh = await getTestMesh({
       logger,

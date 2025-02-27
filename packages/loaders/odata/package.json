@@ -1,0 +1,70 @@
+{
+  "name": "@omnigraph/odata",
+  "version": "0.1.21",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "ardatan/graphql-mesh",
+    "directory": "packages/loaders/odata"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "exports": {
+    ".": {
+      "require": {
+        "types": "./dist/typings/index.d.cts",
+        "default": "./dist/cjs/index.js"
+      },
+      "import": {
+        "types": "./dist/typings/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "default": {
+        "types": "./dist/typings/index.d.ts",
+        "default": "./dist/esm/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "typings": "dist/typings/index.d.ts",
+  "peerDependencies": {
+    "graphql": "*"
+  },
+  "dependencies": {
+    "@graphql-mesh/cross-helpers": "^0.4.10",
+    "@graphql-mesh/store": "^0.103.21",
+    "@graphql-mesh/string-interpolation": "^0.5.8",
+    "@graphql-mesh/types": "^0.103.21",
+    "@graphql-mesh/utils": "^0.103.21",
+    "@graphql-tools/delegate": "^10.0.28",
+    "@graphql-tools/utils": "^10.8.0",
+    "@whatwg-node/fetch": "^0.10.4",
+    "@whatwg-node/promise-helpers": "^1.0.0",
+    "dataloader": "^2.2.2",
+    "fast-xml-parser": "^5.0.0",
+    "graphql-compose": "^9.0.11",
+    "graphql-parse-resolve-info": "^4.13.0",
+    "graphql-scalars": "^1.22.4",
+    "http-string-parser": "^0.0.6",
+    "pascal-case": "^3.1.2",
+    "tslib": "^2.4.0",
+    "url-join": "^4.0.1"
+  },
+  "devDependencies": {
+    "@types/http-string-parser": "0.0.33",
+    "@types/url-join": "4.0.3",
+    "graphql": "16.10.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "directory": "dist"
+  },
+  "sideEffects": false,
+  "typescript": {
+    "definition": "dist/typings/index.d.ts"
+  }
+}

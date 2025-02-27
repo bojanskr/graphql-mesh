@@ -1,10 +1,10 @@
 {
   "name": "@graphql-mesh/plugin-http-details-extensions",
-  "version": "0.95.2",
+  "version": "0.103.22",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "Urigo/graphql-mesh",
+    "url": "ardatan/graphql-mesh",
     "directory": "packages/plugins/http-details-extensions"
   },
   "license": "MIT",
@@ -32,14 +32,17 @@
   },
   "typings": "dist/typings/index.d.ts",
   "peerDependencies": {
-    "@graphql-mesh/types": "^0.95.2",
-    "@graphql-mesh/utils": "^0.95.2",
-    "graphql": "*",
-    "tslib": "^2.4.0"
+    "graphql": "*"
   },
   "dependencies": {
-    "@envelop/core": "4.0.0",
-    "@whatwg-node/fetch": "^0.9.0"
+    "@envelop/core": "^5.1.0",
+    "@graphql-mesh/types": "^0.103.21",
+    "@graphql-mesh/utils": "^0.103.21",
+    "@whatwg-node/fetch": "^0.10.4",
+    "tslib": "^2.4.0"
+  },
+  "devDependencies": {
+    "graphql": "16.10.0"
   },
   "publishConfig": {
     "access": "public",

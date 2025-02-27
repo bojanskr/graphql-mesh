@@ -8,10 +8,6 @@ import { getMesh } from '@graphql-mesh/runtime';
 import { createApp } from '../api/app';
 
 describe('OpenAPI Subscriptions', () => {
-  if (process.versions.node.startsWith('14')) {
-    it('dummy', () => {});
-    return;
-  }
   let config: ProcessedConfig;
   let appWrapper: ReturnType<typeof createApp>;
   let meshHandler: ReturnType<typeof createMeshHTTPHandler>;
@@ -29,16 +25,17 @@ describe('OpenAPI Subscriptions', () => {
         return this;
       },
     };
+    const mesh$ = getMesh({
+      ...config,
+      fetchFn: (...args) => appWrapper.app.fetch(...args),
+    });
     meshHandler = createMeshHTTPHandler({
       baseDir: join(__dirname, '..'),
-      getBuiltMesh: () =>
-        getMesh({
-          ...config,
-          fetchFn: appWrapper.app.fetch as any,
-        }),
+      getBuiltMesh: () => mesh$,
       rawServeConfig: config.config.serve,
     });
-    appWrapper = createApp(meshHandler.fetch as any);
+    // @ts-expect-error TODO: Fix fetch signature
+    appWrapper = createApp(meshHandler.fetch);
   });
   afterAll(() => {
     appWrapper.dispose();
@@ -60,7 +57,7 @@ describe('OpenAPI Subscriptions', () => {
       }),
     });
 
-    const startWebhookResult = (await startWebhookResponse.json()) as ExecutionResult;
+    const startWebhookResult: ExecutionResult = await startWebhookResponse.json();
 
     expect(startWebhookResult).toMatchObject({
       data: {
@@ -89,20 +86,35 @@ describe('OpenAPI Subscriptions', () => {
       }),
     });
 
-    for await (const chunk of listenWebhookResponse.body!) {
-      const chunkStr = Buffer.from(chunk).toString('utf8').trim();
-      if (chunkStr.includes('data: ')) {
-        expect(chunkStr).toContain(
-          `data: ${JSON.stringify({
-            data: {
-              onData: {
-                userData: 'RANDOM_DATA',
+    if (!listenWebhookResponse.body) {
+      throw new Error('No body in listenWebhookResponse');
+    }
+
+    const reader = listenWebhookResponse.body.getReader();
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+        const chunkStr = Buffer.from(value).toString('utf8').trim();
+        if (chunkStr.includes('data: ')) {
+          expect(chunkStr).toContain(
+            `data: ${JSON.stringify({
+              data: {
+                onData: {
+                  userData: 'RANDOM_DATA',
+                },
               },
-            },
-          })}`,
-        );
-        break;
+            })}`,
+          );
+          break;
+        }
       }
+    } finally {
+      await reader.cancel();
+      reader.releaseLock();
     }
   });
 });

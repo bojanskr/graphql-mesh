@@ -1,5 +1,5 @@
 import { resolvePath } from './dereferenceObject.js';
-import { JSONSchema } from './types.js';
+import type { JSONSchema } from './types.js';
 import { visitJSONSchema } from './visitJSONSchema.js';
 
 export async function compareJSONSchemas(oldSchema: JSONSchema, newSchema: JSONSchema) {
@@ -94,10 +94,10 @@ export async function compareJSONSchemas(oldSchema: JSONSchema, newSchema: JSONS
                 typeof newSubSchema?.type === 'string'
                   ? newSubSchema?.type !== oldSubSchema.type
                   : Array.isArray(newSubSchema?.type)
-                  ? Array.isArray(oldSubSchema.type)
-                    ? oldSubSchema.type.some(typeName => !newSubSchema?.type.includes(typeName))
-                    : !newSubSchema?.type.includes(oldSubSchema.type)
-                  : true
+                    ? Array.isArray(oldSubSchema.type)
+                      ? oldSubSchema.type.some(typeName => !newSubSchema?.type.includes(typeName))
+                      : !newSubSchema?.type.includes(oldSubSchema.type)
+                    : true
               ) {
                 breakingChanges.push(
                   `${path}/type is changed from ${oldSubSchema.type} to ${newSubSchema?.type}`,

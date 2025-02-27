@@ -1,23 +1,32 @@
-import { getNamedType, GraphQLInt, GraphQLObjectType, GraphQLString } from 'graphql';
+import type { GraphQLScalarType } from 'graphql';
 import {
-  GraphQLJSON,
+  getNamedType,
+  GraphQLInt,
+  GraphQLObjectType,
+  GraphQLString,
+  isInterfaceType,
+} from 'graphql';
+import type {
+  InterfaceTypeComposer,
   ObjectTypeComposer,
   ObjectTypeComposerFieldConfig,
   SchemaComposer,
 } from 'graphql-compose';
-import { IStringifyOptions } from 'qs';
+import { GraphQLJSON } from 'graphql-compose';
+import type { IStringifyOptions } from 'qs';
 import { process } from '@graphql-mesh/cross-helpers';
-import { Logger } from '@graphql-mesh/types';
+import type { Logger } from '@graphql-mesh/types';
+import { MapperKind, mapSchema } from '@graphql-tools/utils';
 import {
-  GlobalOptionsDirective,
   HTTPOperationDirective,
-  LinkDirective,
   LinkResolverDirective,
+  OasLinkDirective,
   PubSubOperationDirective,
   ResolveRootDirective,
   ResponseMetadataDirective,
+  TransportDirective,
 } from './directives.js';
-import {
+import type {
   JSONSchemaLinkConfig,
   JSONSchemaOperationConfig,
   OperationHeadersConfiguration,
@@ -32,6 +41,8 @@ export interface AddExecutionLogicToComposerOptions {
   logger: Logger;
   queryParams?: Record<string, string | number | boolean>;
   queryStringOptions?: IStringifyOptions;
+  getScalarForFormat?: (format: string) => GraphQLScalarType | void;
+  handlerName?: string;
 }
 
 const responseMetadataType = new GraphQLObjectType({
@@ -46,8 +57,8 @@ const responseMetadataType = new GraphQLObjectType({
   },
 });
 
-export async function addExecutionDirectivesToComposer(
-  name: string,
+export function addExecutionDirectivesToComposer(
+  subgraphName: string,
   {
     schemaComposer,
     logger,
@@ -56,21 +67,9 @@ export async function addExecutionDirectivesToComposer(
     endpoint,
     queryParams,
     queryStringOptions,
+    handlerName,
   }: AddExecutionLogicToComposerOptions,
 ) {
-  schemaComposer.addDirective(GlobalOptionsDirective);
-  schemaComposer.Query.setDirectiveByName(
-    'globalOptions',
-    JSON.parse(
-      JSON.stringify({
-        sourceName: name,
-        endpoint,
-        operationHeaders,
-        queryStringOptions,
-        queryParams,
-      }),
-    ),
-  );
   logger.debug(`Attaching execution directives to the schema`);
   for (const operationConfig of operations) {
     const { httpMethod, rootTypeName, fieldName } = getOperationMetadata(operationConfig);
@@ -87,6 +86,7 @@ export async function addExecutionDirectivesToComposer(
       field.directives.push({
         name: 'pubsubOperation',
         args: {
+          subgraph: subgraphName,
           pubsubTopic: operationConfig.pubsubTopic,
         },
       });
@@ -108,83 +108,108 @@ ${operationConfig.description || ''}
         name: 'httpOperation',
         args: JSON.parse(
           JSON.stringify({
+            subgraph: subgraphName,
             path: operationConfig.path,
-            operationSpecificHeaders: operationConfig.headers,
+            operationSpecificHeaders: operationConfig.headers
+              ? Object.entries(operationConfig.headers)
+              : undefined,
             httpMethod,
             isBinary: 'binary' in operationConfig ? operationConfig.binary : undefined,
             requestBaseBody:
               'requestBaseBody' in operationConfig ? operationConfig.requestBaseBody : undefined,
             queryParamArgMap: operationConfig.queryParamArgMap,
             queryStringOptionsByParam: operationConfig.queryStringOptionsByParam,
+            jsonApiFields: operationConfig.jsonApiFields,
+            queryStringOptions:
+              'queryStringOptions' in operationConfig
+                ? operationConfig.queryStringOptions
+                : undefined,
           }),
         ),
       });
 
       const handleLinkMap = (
         linkMap: Record<string, JSONSchemaLinkConfig>,
-        typeTC: ObjectTypeComposer,
+        typeTC: ObjectTypeComposer | InterfaceTypeComposer,
       ) => {
         for (const linkName in linkMap) {
-          typeTC.addFields({
-            [linkName]: () => {
-              const linkObj = linkMap[linkName];
-              field.directives = field.directives || [];
-              let linkResolverMapDirective = field.directives.find(d => d.name === 'linkResolver');
-              if (!linkResolverMapDirective) {
-                schemaComposer.addDirective(LinkResolverDirective);
-                linkResolverMapDirective = {
-                  name: 'linkResolver',
+          const linkObj = linkMap[linkName];
+          field.directives = field.directives || [];
+          let linkResolverMapDirective = field.directives.find(d => d.name === 'linkResolver');
+          if (!linkResolverMapDirective) {
+            schemaComposer.addDirective(LinkResolverDirective);
+            linkResolverMapDirective = {
+              name: 'linkResolver',
+              args: {
+                subgraph: subgraphName,
+                linkResolverMap: {},
+              },
+            };
+            field.directives.push(linkResolverMapDirective);
+          }
+          const linkResolverFieldMap = linkResolverMapDirective.args.linkResolverMap;
+          let targetField: ObjectTypeComposerFieldConfig<any, any> | undefined;
+          let fieldTypeName: string;
+          try {
+            targetField = schemaComposer.Query.getField(linkObj.fieldName);
+            fieldTypeName = 'Query';
+          } catch {
+            try {
+              targetField = schemaComposer.Mutation.getField(linkObj.fieldName);
+              fieldTypeName = 'Mutation';
+            } catch {}
+          }
+          if (!targetField) {
+            logger.debug(
+              `Field ${linkObj.fieldName} not found in ${subgraphName} for link ${linkName}`,
+            );
+          }
+          linkResolverFieldMap[linkName] = {
+            linkObjArgs: linkObj.args,
+            targetTypeName: fieldTypeName,
+            targetFieldName: linkObj.fieldName,
+          };
+          schemaComposer.addDirective(OasLinkDirective);
+          const fields = {
+            [linkName]: {
+              ...targetField,
+              directives: [
+                {
+                  name: 'oas_link',
                   args: {
-                    linkResolverMap: {},
+                    subgraph: subgraphName,
+                    defaultRootType: rootTypeName,
+                    defaultField: operationConfig.field,
                   },
-                };
-                field.directives.push(linkResolverMapDirective);
-              }
-              const linkResolverFieldMap = linkResolverMapDirective.args.linkResolverMap;
-              let targetField: ObjectTypeComposerFieldConfig<any, any> | undefined;
-              let fieldTypeName: string;
-              try {
-                targetField = schemaComposer.Query.getField(linkObj.fieldName);
-                fieldTypeName = 'Query';
-              } catch {
-                try {
-                  targetField = schemaComposer.Mutation.getField(linkObj.fieldName);
-                  fieldTypeName = 'Mutation';
-                } catch {}
-              }
-              if (!targetField) {
-                logger.debug(
-                  `Field ${linkObj.fieldName} not found in ${name} for link ${linkName}`,
-                );
-              }
-              linkResolverFieldMap[linkName] = {
-                linkObjArgs: linkObj.args,
-                targetTypeName: fieldTypeName,
-                targetFieldName: linkObj.fieldName,
-              };
-              schemaComposer.addDirective(LinkDirective);
-              return {
-                ...targetField,
-                directives: [
-                  {
-                    name: 'link',
-                    args: {
-                      defaultRootType: rootTypeName,
-                      defaultField: operationConfig.field,
-                    },
-                  },
-                ],
-                args: linkObj.args ? {} : targetField.args,
-                description: linkObj.description || targetField.description,
-              };
+                },
+              ],
+              get args() {
+                return linkObj.args ? {} : targetField?.args;
+              },
+              get description() {
+                return linkObj.description || targetField?.description;
+              },
             },
-          });
+          };
+          typeTC.addFields(fields);
+          if (schemaComposer.isInterfaceType(typeTC)) {
+            const iFaceTC = typeTC as InterfaceTypeComposer;
+            for (const subTC of schemaComposer.types.values()) {
+              if ('getInterfaces' in subTC) {
+                if (
+                  subTC.getInterfaces().some(iFace => iFace.getTypeName() === iFaceTC.getTypeName())
+                ) {
+                  subTC.addFields(fields);
+                }
+              }
+            }
+          }
         }
       };
 
       if ('links' in operationConfig) {
-        const typeTC = schemaComposer.getOTC(field.type.getTypeName());
-        handleLinkMap(operationConfig.links, typeTC);
+        const typeTC = schemaComposer.getAnyTC(field.type.getTypeName());
+        handleLinkMap(operationConfig.links, typeTC as ObjectTypeComposer);
       }
 
       if ('exposeResponseMetadata' in operationConfig && operationConfig.exposeResponseMetadata) {
@@ -196,6 +221,9 @@ ${operationConfig.description || ''}
             directives: [
               {
                 name: 'responseMetadata',
+                args: {
+                  subgraph: subgraphName,
+                },
               },
             ],
           },
@@ -230,6 +258,9 @@ ${operationConfig.description || ''}
                     directives: [
                       {
                         name: 'resolveRoot',
+                        args: {
+                          subgraph: subgraphName,
+                        },
                       },
                     ],
                   },
@@ -247,6 +278,9 @@ ${operationConfig.description || ''}
                   directives: [
                     {
                       name: 'responseMetadata',
+                      args: {
+                        subgraph: subgraphName,
+                      },
                     },
                   ],
                 },
@@ -262,5 +296,38 @@ ${operationConfig.description || ''}
   }
 
   logger.debug(`Building the executable schema.`);
-  return schemaComposer;
+  if (schemaComposer.Query.getFieldNames().length === 0) {
+    schemaComposer.Query.addFields({
+      dummy: {
+        type: 'String',
+        resolve: () => 'dummy',
+      },
+    });
+  }
+
+  schemaComposer.addDirective(TransportDirective);
+  let schema = schemaComposer.buildSchema();
+  const schemaExtensions: any = (schema.extensions = schema.extensions || {});
+  schemaExtensions.directives = schemaExtensions.directives || {};
+  schemaExtensions.directives.transport = {
+    subgraph: subgraphName,
+    kind: handlerName,
+    location: endpoint,
+    headers: operationHeaders ? Object.entries(operationHeaders) : undefined,
+    queryParams: queryParams ? Object.entries(queryParams) : undefined,
+    queryStringOptions,
+  };
+  // Fix orphaned interfaces
+  schema = mapSchema(schema, {
+    [MapperKind.TYPE]: type => {
+      if (isInterfaceType(type)) {
+        const { objects, interfaces } = schema.getImplementations(type);
+        if (objects.length === 0 && interfaces.length === 0) {
+          return new GraphQLObjectType(type.toConfig() as any);
+        }
+      }
+      return type;
+    },
+  });
+  return schema;
 }

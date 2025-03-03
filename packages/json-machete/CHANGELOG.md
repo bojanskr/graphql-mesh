@@ -1,5 +1,154 @@
 # json-machete
 
+## 0.97.6
+
+### Patch Changes
+
+- [#8270](https://github.com/ardatan/graphql-mesh/pull/8270)
+  [`d3656b6`](https://github.com/ardatan/graphql-mesh/commit/d3656b60fe47c74122e9dfad28273426b07b42ab)
+  Thanks [@ardatan](https://github.com/ardatan)! - dependencies updates:
+  - Updated dependency
+    [`@json-schema-tools/meta-schema@^1.7.5` ↗︎](https://www.npmjs.com/package/@json-schema-tools/meta-schema/v/1.7.5)
+    (from `1.7.5`, in `dependencies`)
+  - Updated dependency
+    [`cross-inspect@^1.0.1` ↗︎](https://www.npmjs.com/package/cross-inspect/v/1.0.1) (from `1.0.1`,
+    in `dependencies`)
+  - Updated dependency
+    [`json-pointer@^0.6.2` ↗︎](https://www.npmjs.com/package/json-pointer/v/0.6.2) (from `0.6.2`,
+    in `dependencies`)
+  - Updated dependency
+    [`to-json-schema@^0.2.5` ↗︎](https://www.npmjs.com/package/to-json-schema/v/0.2.5) (from
+    `0.2.5`, in `dependencies`)
+  - Updated dependency [`url-join@^4.0.1` ↗︎](https://www.npmjs.com/package/url-join/v/4.0.1) (from
+    `4.0.1`, in `dependencies`)
+
+## 0.97.5
+
+### Patch Changes
+
+- [#8092](https://github.com/ardatan/graphql-mesh/pull/8092)
+  [`2ef651a`](https://github.com/ardatan/graphql-mesh/commit/2ef651a8356b560478f1847399bad975a0c3f0b9)
+  Thanks [@ardatan](https://github.com/ardatan)! - dependencies updates:
+  - Added dependency [`tslib@^2.4.0` ↗︎](https://www.npmjs.com/package/tslib/v/2.4.0) (to
+    `dependencies`)
+  - Removed dependency [`tslib@^2.4.0` ↗︎](https://www.npmjs.com/package/tslib/v/2.4.0) (from
+    `peerDependencies`)
+
+## 0.97.4
+
+### Patch Changes
+
+- [#7462](https://github.com/ardatan/graphql-mesh/pull/7462)
+  [`48868b0`](https://github.com/ardatan/graphql-mesh/commit/48868b0e3ff5e30ba589f250d490f285c0365433)
+  Thanks [@renovate](https://github.com/apps/renovate)! - dependencies updates:
+  - Updated dependency
+    [`cross-inspect@1.0.1` ↗︎](https://www.npmjs.com/package/cross-inspect/v/1.0.1) (from `1.0.0`,
+    in `dependencies`)
+
+## 0.97.3
+
+### Patch Changes
+
+- [#6942](https://github.com/ardatan/graphql-mesh/pull/6942)
+  [`234d2f9`](https://github.com/ardatan/graphql-mesh/commit/234d2f9d390bd340b0f7bcdb8f335334ff5f60b9)
+  Thanks [@renovate](https://github.com/apps/renovate)! - dependencies updates:
+
+  - Updated dependency
+    [`@json-schema-tools/meta-schema@1.7.5` ↗︎](https://www.npmjs.com/package/@json-schema-tools/meta-schema/v/1.7.5)
+    (from `1.7.4`, in `dependencies`)
+
+## 0.97.2
+
+### Patch Changes
+
+- [#6832](https://github.com/ardatan/graphql-mesh/pull/6832)
+  [`6521fa0`](https://github.com/ardatan/graphql-mesh/commit/6521fa0ec66fd5af734d8ca03941d78d852d3a0c)
+  Thanks [@renovate](https://github.com/apps/renovate)! - dependencies updates:
+  - Updated dependency
+    [`@json-schema-tools/meta-schema@1.7.4` ↗︎](https://www.npmjs.com/package/@json-schema-tools/meta-schema/v/1.7.4)
+    (from `1.7.0`, in `dependencies`)
+
+## 0.97.1
+
+### Patch Changes
+
+- [#6310](https://github.com/ardatan/graphql-mesh/pull/6310)
+  [`427ff87`](https://github.com/ardatan/graphql-mesh/commit/427ff871cd13781a4cd3dd0ead54cad3d100d083)
+  Thanks [@ardatan](https://github.com/ardatan)! - Respect `required` fields in allOf definitions
+
+## 0.97.0
+
+### Minor Changes
+
+- [#6230](https://github.com/ardatan/graphql-mesh/pull/6230)
+  [`47a50aa6d`](https://github.com/ardatan/graphql-mesh/commit/47a50aa6d1a1bb9766f0895b206756741c0f6769)
+  Thanks [@ardatan](https://github.com/ardatan)! - BREAKING: All the functions requires
+  `readFileOrUrl` instead of fetch function and/or import function, and they no longer need a logger
+  instance but `debugLogFn` for verbose logging
+
+## 0.96.0
+
+### Patch Changes
+
+- Updated dependencies
+  [[`5c6a8f784`](https://github.com/ardatan/graphql-mesh/commit/5c6a8f784a787641b90349e584b49de629cc41ff)]:
+  - @graphql-mesh/types@0.96.0
+  - @graphql-mesh/utils@0.96.0
+
+## 0.95.8
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @graphql-mesh/utils@0.95.8
+  - @graphql-mesh/types@0.95.8
+
+## 0.95.7
+
+### Patch Changes
+
+- Updated dependencies
+  [[`a13969c77`](https://github.com/Urigo/graphql-mesh/commit/a13969c77794c44493d7a9426be7e38a6d673c88)]:
+  - @graphql-mesh/types@0.95.7
+  - @graphql-mesh/utils@0.95.7
+
+## 0.95.6
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @graphql-mesh/utils@0.95.6
+  - @graphql-mesh/types@0.95.6
+
+## 0.95.5
+
+### Patch Changes
+
+- Updated dependencies
+  [[`b8f16a42b`](https://github.com/Urigo/graphql-mesh/commit/b8f16a42bf599723c2e311c47e74f812c6d1b781),
+  [`b8f16a42b`](https://github.com/Urigo/graphql-mesh/commit/b8f16a42bf599723c2e311c47e74f812c6d1b781)]:
+  - @graphql-mesh/cross-helpers@0.4.1
+  - @graphql-mesh/types@0.95.5
+  - @graphql-mesh/utils@0.95.5
+
+## 0.95.4
+
+### Patch Changes
+
+- Updated dependencies
+  [[`625e5d787`](https://github.com/Urigo/graphql-mesh/commit/625e5d7878d44abd7c9d1542bf5cdcd4e37e2411)]:
+  - @graphql-mesh/types@0.95.4
+  - @graphql-mesh/utils@0.95.4
+
+## 0.95.3
+
+### Patch Changes
+
+- Updated dependencies
+  [[`33ae7a89a`](https://github.com/Urigo/graphql-mesh/commit/33ae7a89a13f40ebbe0a01620e378fe4a914df7f)]:
+  - @graphql-mesh/types@0.95.3
+  - @graphql-mesh/utils@0.95.3
+
 ## 0.95.2
 
 ### Patch Changes

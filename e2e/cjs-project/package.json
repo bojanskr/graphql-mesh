@@ -1,0 +1,9 @@
+{
+  "name": "@e2e/cjs-project",
+  "type": "commonjs",
+  "private": true,
+  "dependencies": {
+    "@graphql-hive/gateway": "^1.8.0",
+    "graphql": "16.10.0"
+  }
+}

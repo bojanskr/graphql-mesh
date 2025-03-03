@@ -1,0 +1,22 @@
+{
+  "name": "@examples-v1-next/gcp-functions",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "npm run compose && npm run build:ts",
+    "build:ts": "tsc",
+    "check": "exit 0",
+    "compose": "node ../../packages/compose-cli/dist/esm/bin.js > supergraph.graphql",
+    "prestart": "npm run build",
+    "start": "functions-framework --target=mesh"
+  },
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.3.0",
+    "@graphql-hive/gateway": "^1.8.0",
+    "@graphql-mesh/compose-cli": "workspace:^",
+    "@omnigraph/json-schema": "workspace:^",
+    "@types/node": "^22.0.0",
+    "graphql": "^16.9.0",
+    "typescript": "^5.4.2"
+  }
+}

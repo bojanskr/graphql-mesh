@@ -1,29 +1,166 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Examples should generate schema for example1: example1 1`] = `
-"directive @soap(elementName: String, bindingNamespace: String, endpoint: String) on FIELD_DEFINITION
+exports[`Examples should generate schema for axis: axis 1`] = `
+"schema @transport(kind: "soap", subgraph: "axis") {
+  query: Query
+  mutation: Mutation
+}
+
+directive @soap(elementName: String, bindingNamespace: String, endpoint: String, subgraph: String, bodyAlias: String, soapHeaders: SOAPHeaders, soapAction: String, soapNamespace: String) on FIELD_DEFINITION
 
 type Query {
-  TodoService_TodoService_BasicHttpBinding_ITodoService_GetTodos(GetTodos: JSON = ""): TodoService_GetTodosResponse
+  placeholder: Void
+}
+
+"""Represents NULL values"""
+scalar Void
+
+type Mutation {
+  impl_TestService_TestService_createTest(createTestRequest: impl_createTestRequestType_Input): impl_createTestResponseType @soap(elementName: "createTestResponse", bindingNamespace: "urn:com.guild:operations/test", endpoint: "http://the-guild.dev/graphql/mesh/soap/TestService", subgraph: "axis", soapNamespace: "http://schemas.xmlsoap.org/soap/envelope/")
+}
+
+type impl_createTestResponseType {
+  name: String
+  intCount: Int
+  integerCount: Int
+  doubleCount: Float
+  floatCount: Float
+  longCount: BigInt
+  shortCount: Int
+  unsignedIntCount: UnsignedInt
+  unsignedLongCount: BigInt
+  unsignedShortCount: UnsignedInt
+  unsignedByteField: Byte
+  booleanField: Boolean
+  byteField: Byte
+  dateField: Date
+  dateTimeField: DateTime
+  decimalField: Float
+  nonNegIntField: NonNegativeInt
+  nonPosIntField: NonPositiveInt
+  posIntField: PositiveInt
+  negIntField: NegativeInt
+  weekday: impl_weekday
+  status: impl_testStatusInfoType
+  weekdays: impl_weekDays
+}
+
+"""
+The \`BigInt\` scalar type represents non-fractional signed whole numeric values.
+"""
+scalar BigInt
+
+"""Integers that will have a value of 0 or more."""
+scalar UnsignedInt
+
+"""The \`Byte\` scalar type represents byte value as a Buffer"""
+scalar Byte
+
+"""
+A date string, such as 2007-12-03, compliant with the \`full-date\` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+"""
+scalar Date
+
+"""
+A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the \`date-time\` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+"""
+scalar DateTime
+
+"""Integers that will have a value of 0 or more."""
+scalar NonNegativeInt
+
+"""Integers that will have a value of 0 or less."""
+scalar NonPositiveInt
+
+"""Integers that will have a value greater than 0."""
+scalar PositiveInt
+
+"""Integers that will have a value less than 0."""
+scalar NegativeInt
+
+enum impl_weekday {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+}
+
+type impl_testStatusInfoType {
+  status: String
+}
+
+type impl_weekDays {
+  option: [impl_weekday]
+}
+
+input impl_createTestRequestType_Input {
+  name: String
+  intCount: Int
+  integerCount: Int
+  doubleCount: Float
+  floatCount: Float
+  longCount: BigInt
+  shortCount: Int
+  unsignedIntCount: UnsignedInt
+  unsignedLongCount: BigInt
+  unsignedShortCount: UnsignedInt
+  unsignedByteField: Byte
+  booleanField: Boolean
+  byteField: Byte
+  dateField: Date
+  dateTimeField: DateTime
+  decimalField: Float
+  nonNegIntField: NonNegativeInt
+  nonPosIntField: NonPositiveInt
+  posIntField: PositiveInt
+  negIntField: NegativeInt
+  weekday: impl_weekday
+  weekdays: impl_weekDays_Input
+}
+
+input impl_weekDays_Input {
+  option: [impl_weekday]
+}
+
+input SOAPHeaders {
+  namespace: String
+  alias: String
+  headers: ObjMap
+}
+
+scalar ObjMap"
+`;
+
+exports[`Examples should generate schema for example1: example1 1`] = `
+"schema @transport(kind: "soap", subgraph: "example1") {
+  query: Query
+  mutation: Mutation
+}
+
+directive @soap(elementName: String, bindingNamespace: String, endpoint: String, subgraph: String, bodyAlias: String, soapHeaders: SOAPHeaders, soapAction: String, soapNamespace: String) on FIELD_DEFINITION
+
+type Query {
+  TodoService_TodoService_BasicHttpBinding_ITodoService_GetTodos(GetTodos: JSON = ""): TodoService_GetTodosResponse @soap(elementName: "GetTodosResponse", bindingNamespace: "http://tempuri.org/", endpoint: "http://localhost:8088/TodoService/basichttp", subgraph: "example1", soapNamespace: "http://www.w3.org/2003/05/soap-envelope", soapAction: "http://tempuri.org/ITodoService/GetTodos")
 }
 
 type TodoService_GetTodosResponse {
-  GetTodosResult: tns_ArrayOfTodoMessage!
+  GetTodosResult: tns_ArrayOfTodoMessage
 }
 
 type tns_ArrayOfTodoMessage {
-  TodoMessage: [tns_TodoMessage]!
+  TodoMessage: [tns_TodoMessage]
 }
 
 type tns_TodoMessage {
-  Author: tns_Name!
-  Description: String!
+  Author: tns_Name
+  Description: String
 }
 
 type tns_Name {
-  First: String!
-  Last: String!
-  Middle: String!
+  First: String
+  Last: String
+  Middle: String
 }
 
 """
@@ -32,11 +169,11 @@ The \`JSON\` scalar type represents JSON values as specified by [ECMA-404](http:
 scalar JSON
 
 type Mutation {
-  TodoService_TodoService_BasicHttpBinding_ITodoService_UpdateFileClass(UpdateFileClass: TodoService_UpdateFileClass_Input): JSON
-  TodoService_TodoService_BasicHttpBinding_ITodoService_AddUpdateClass(AddUpdateClass: TodoService_AddUpdateClass_Input): TodoService_AddUpdateClassResponse
-  TodoService_TodoService_BasicHttpBinding_ITodoService_AddTodo(AddTodo: TodoService_AddTodo_Input): TodoService_AddTodoResponse
-  TodoService_TodoService_BasicHttpBinding_ITodoService_FaultAddTodo(FaultAddTodo: TodoService_FaultAddTodo_Input): TodoService_FaultAddTodoResponse
-  TodoService_TodoService_BasicHttpBinding_ITodoService_FailGetTodo(FailGetTodo: JSON = ""): TodoService_FailGetTodoResponse
+  TodoService_TodoService_BasicHttpBinding_ITodoService_UpdateFileClass(UpdateFileClass: TodoService_UpdateFileClass_Input): JSON @soap(elementName: "UpdateFileClassResponse", bindingNamespace: "http://tempuri.org/", endpoint: "http://localhost:8088/TodoService/basichttp", subgraph: "example1", soapNamespace: "http://www.w3.org/2003/05/soap-envelope", soapAction: "http://tempuri.org/ITodoService/UpdateFileClass")
+  TodoService_TodoService_BasicHttpBinding_ITodoService_AddUpdateClass(AddUpdateClass: TodoService_AddUpdateClass_Input): TodoService_AddUpdateClassResponse @soap(elementName: "AddUpdateClassResponse", bindingNamespace: "http://tempuri.org/", endpoint: "http://localhost:8088/TodoService/basichttp", subgraph: "example1", soapNamespace: "http://www.w3.org/2003/05/soap-envelope", soapAction: "http://tempuri.org/ITodoService/AddUpdateClass")
+  TodoService_TodoService_BasicHttpBinding_ITodoService_AddTodo(AddTodo: TodoService_AddTodo_Input): TodoService_AddTodoResponse @soap(elementName: "AddTodoResponse", bindingNamespace: "http://tempuri.org/", endpoint: "http://localhost:8088/TodoService/basichttp", subgraph: "example1", soapNamespace: "http://www.w3.org/2003/05/soap-envelope", soapAction: "http://tempuri.org/ITodoService/AddTodo")
+  TodoService_TodoService_BasicHttpBinding_ITodoService_FaultAddTodo(FaultAddTodo: TodoService_FaultAddTodo_Input): TodoService_FaultAddTodoResponse @soap(elementName: "FaultAddTodoResponse", bindingNamespace: "http://tempuri.org/", endpoint: "http://localhost:8088/TodoService/basichttp", subgraph: "example1", soapNamespace: "http://www.w3.org/2003/05/soap-envelope", soapAction: "http://tempuri.org/ITodoService/FaultAddTodo")
+  TodoService_TodoService_BasicHttpBinding_ITodoService_FailGetTodo(FailGetTodo: JSON = ""): TodoService_FailGetTodoResponse @soap(elementName: "FailGetTodoResponse", bindingNamespace: "http://tempuri.org/", endpoint: "http://localhost:8088/TodoService/basichttp", subgraph: "example1", soapNamespace: "http://www.w3.org/2003/05/soap-envelope", soapAction: "http://tempuri.org/ITodoService/FailGetTodo")
 }
 
 input TodoService_UpdateFileClass_Input {
@@ -44,7 +181,7 @@ input TodoService_UpdateFileClass_Input {
 }
 
 input tns_FileClass_Input {
-  Mode: String
+  Mode: tns_EntityMode
   ClassIntID: BigInt
   CreatedBy: String
   CreatedDtTm: DateTime
@@ -52,9 +189,16 @@ input tns_FileClass_Input {
   LastUpdatedBy: String
   LastUpdatedDtTm: DateTime
   Name: String
-  PeriodType: String
+  PeriodType: tns_PeriodType
   Retention: Int
   Timestamp: Byte
+}
+
+enum tns_EntityMode {
+  New
+  Deleted
+  Changed
+  Unchanged
 }
 
 """
@@ -67,11 +211,18 @@ A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the \`da
 """
 scalar DateTime
 
+enum tns_PeriodType {
+  Days
+  Weeks
+  Months
+  Years
+}
+
 """The \`Byte\` scalar type represents byte value as a Buffer"""
 scalar Byte
 
 type TodoService_AddUpdateClassResponse {
-  AddUpdateClassResult: Boolean!
+  AddUpdateClassResult: Boolean
 }
 
 input TodoService_AddUpdateClass_Input {
@@ -83,7 +234,7 @@ input tns_UpdateClass_Input {
 }
 
 type TodoService_AddTodoResponse {
-  AddTodoResult: Boolean!
+  AddTodoResult: Boolean
 }
 
 input TodoService_AddTodo_Input {
@@ -102,7 +253,7 @@ input tns_Name_Input {
 }
 
 type TodoService_FaultAddTodoResponse {
-  FaultAddTodoResult: String!
+  FaultAddTodoResult: String
 }
 
 input TodoService_FaultAddTodo_Input {
@@ -110,26 +261,39 @@ input TodoService_FaultAddTodo_Input {
 }
 
 type TodoService_FailGetTodoResponse {
-  FailGetTodoResult: String!
-}"
+  FailGetTodoResult: String
+}
+
+input SOAPHeaders {
+  namespace: String
+  alias: String
+  headers: ObjMap
+}
+
+scalar ObjMap"
 `;
 
 exports[`Examples should generate schema for example2: example2 1`] = `
-"directive @soap(elementName: String, bindingNamespace: String, endpoint: String) on FIELD_DEFINITION
+"schema @transport(kind: "soap", subgraph: "example2") {
+  query: Query
+  mutation: Mutation
+}
+
+directive @soap(elementName: String, bindingNamespace: String, endpoint: String, subgraph: String, bodyAlias: String, soapHeaders: SOAPHeaders, soapAction: String, soapNamespace: String) on FIELD_DEFINITION
 
 type Query {
-  AdminServiceType_AdminServiceType_BasicHttpBinding_IAdminService_GetServiceHealth(GetServiceHealth: JSON = ""): tns_GetServiceHealthResponse
-  AdminServiceType_AdminServiceType_BasicHttpBinding_IAdminService_GetFileClassByClassID(GetFileClassByClassID: AdminServiceType_GetFileClassByClassID_Input): AdminServiceType_GetFileClassByClassIDResponse
-  AdminServiceType_AdminServiceType_BasicHttpBinding_IAdminService_GetFileClassByClassIntIDCaasToMonolith(GetFileClassByClassIntIDCaasToMonolith: AdminServiceType_GetFileClassByClassIntIDCaasToMonolith_Input): AdminServiceType_GetFileClassByClassIntIDCaasToMonolithResponse
+  AdminServiceType_AdminServiceType_BasicHttpBinding_IAdminService_GetServiceHealth(GetServiceHealth: JSON = ""): tns_GetServiceHealthResponse @soap(elementName: "GetServiceHealthResponse", bindingNamespace: "http://Pfx.Net/Document/IAdminService", endpoint: "http://[::]/AdminServiceType", subgraph: "example2", soapNamespace: "http://www.w3.org/2003/05/soap-envelope", soapAction: "http://tempuri.org/IPfxServiceHealth/GetServiceHealth")
+  AdminServiceType_AdminServiceType_BasicHttpBinding_IAdminService_GetFileClassByClassID(GetFileClassByClassID: AdminServiceType_GetFileClassByClassID_Input): AdminServiceType_GetFileClassByClassIDResponse @soap(elementName: "GetFileClassByClassIDResponse", bindingNamespace: "http://Pfx.Net/Document/IAdminService", endpoint: "http://[::]/AdminServiceType", subgraph: "example2", soapNamespace: "http://www.w3.org/2003/05/soap-envelope", soapAction: "http://Pfx.Net/Document/IAdminService/IAdminService/GetFileClassByClassID")
+  AdminServiceType_AdminServiceType_BasicHttpBinding_IAdminService_GetFileClassByClassIntIDCaasToMonolith(GetFileClassByClassIntIDCaasToMonolith: AdminServiceType_GetFileClassByClassIntIDCaasToMonolith_Input): AdminServiceType_GetFileClassByClassIntIDCaasToMonolithResponse @soap(elementName: "GetFileClassByClassIntIDCaasToMonolithResponse", bindingNamespace: "http://Pfx.Net/Document/IAdminService", endpoint: "http://[::]/AdminServiceType", subgraph: "example2", soapNamespace: "http://www.w3.org/2003/05/soap-envelope", soapAction: "http://Pfx.Net/Document/IAdminService/IAdminService/GetFileClassByClassIntIDCaasToMonolith")
 }
 
 type tns_GetServiceHealthResponse {
-  GetServiceHealthResult: tns_ServiceHealth!
+  GetServiceHealthResult: tns_ServiceHealth
 }
 
 type tns_ServiceHealth {
-  IsHealthy: Boolean!
-  UniqueValue: BigInt!
+  IsHealthy: Boolean
+  UniqueValue: BigInt
 }
 
 """
@@ -143,27 +307,34 @@ The \`JSON\` scalar type represents JSON values as specified by [ECMA-404](http:
 scalar JSON
 
 type AdminServiceType_GetFileClassByClassIDResponse {
-  GetFileClassByClassIDResult: tns_FileClass!
+  GetFileClassByClassIDResult: tns_FileClass
 }
 
 type tns_FileClass {
-  Mode: String!
-  ClassIntID: BigInt!
-  CreatedBy: String!
-  CreatedDtTm: DateTime!
-  Entityclasses: tns_EntityClassList!
-  FirmGuid: tns_guid!
-  FirmIntID: BigInt!
-  LastUpdatedBy: String!
-  LastUpdatedDtTm: DateTime!
-  Name: String!
-  NeedANotification: Boolean!
-  PeriodType: String!
-  PreventPublishFlg: Boolean!
-  Retention: Int!
-  RetentionChanged: String!
-  Subclasses: tns_FileSubclassList!
-  Timestamp: Byte!
+  Mode: tns_EntityMode
+  ClassIntID: BigInt
+  CreatedBy: String
+  CreatedDtTm: DateTime
+  Entityclasses: tns_EntityClassList
+  FirmGuid: tns_guid
+  FirmIntID: BigInt
+  LastUpdatedBy: String
+  LastUpdatedDtTm: DateTime
+  Name: String
+  NeedANotification: Boolean
+  PeriodType: tns_PeriodType
+  PreventPublishFlg: Boolean
+  Retention: Int
+  RetentionChanged: String
+  Subclasses: tns_FileSubclassList
+  Timestamp: Byte
+}
+
+enum tns_EntityMode {
+  New
+  Deleted
+  Changed
+  Unchanged
 }
 
 """
@@ -172,16 +343,32 @@ A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the \`da
 scalar DateTime
 
 type tns_EntityClassList {
-  EntityClass: [tns_EntityClass]!
+  EntityClass: [tns_EntityClass]
 }
 
 type tns_EntityClass {
-  Mode: String!
-  ClassIntID: BigInt!
-  EntityClassIntID: BigInt!
-  EntityIntID: BigInt!
-  EntityType: String!
-  FirmIntID: BigInt!
+  Mode: tns_EntityMode
+  ClassIntID: BigInt
+  EntityClassIntID: BigInt
+  EntityIntID: BigInt
+  EntityType: tns_EntityType
+  FirmIntID: BigInt
+}
+
+enum tns_EntityType {
+  Firm
+  Office
+  Staff
+  StaffList
+  BusinessUnit
+  Client
+  ClientList
+  DocumentEntityType
+  OtherClient
+  ClientOtherEntity
+  OfficeBusinessUnit
+  NonClient
+  NonClientList
 }
 
 """
@@ -189,26 +376,33 @@ A field whose value matches /[\\da-fA-F]{8}-[\\da-fA-F]{4}-[\\da-fA-F]{4}-[\\da-
 """
 scalar tns_guid
 
+enum tns_PeriodType {
+  Days
+  Weeks
+  Months
+  Years
+}
+
 type tns_FileSubclassList {
-  FileSubclass: [tns_FileSubclass]!
+  FileSubclass: [tns_FileSubclass]
 }
 
 type tns_FileSubclass {
-  Mode: String!
-  ClassIntID: BigInt!
-  CreatedBy: String!
-  CreatedDtTm: DateTime!
-  EffectivePeriodType: String!
-  EffectiveRetention: Int!
-  LastUpdatedBy: String!
-  LastUpdatedDtTm: DateTime!
-  Name: String!
-  PeriodType: String!
-  Permanent: Boolean!
-  Retention: Int!
-  RetentionChanged: String!
-  SubClassIntID: BigInt!
-  Timestamp: Byte!
+  Mode: tns_EntityMode
+  ClassIntID: BigInt
+  CreatedBy: String
+  CreatedDtTm: DateTime
+  EffectivePeriodType: tns_PeriodType
+  EffectiveRetention: Int
+  LastUpdatedBy: String
+  LastUpdatedDtTm: DateTime
+  Name: String
+  PeriodType: tns_PeriodType
+  Permanent: Boolean
+  Retention: Int
+  RetentionChanged: String
+  SubClassIntID: BigInt
+  Timestamp: Byte
 }
 
 """The \`Byte\` scalar type represents byte value as a Buffer"""
@@ -219,7 +413,7 @@ input AdminServiceType_GetFileClassByClassID_Input {
 }
 
 type AdminServiceType_GetFileClassByClassIntIDCaasToMonolithResponse {
-  GetFileClassByClassIntIDCaasToMonolithResult: tns_FileClass!
+  GetFileClassByClassIntIDCaasToMonolithResult: tns_FileClass
 }
 
 input AdminServiceType_GetFileClassByClassIntIDCaasToMonolith_Input {
@@ -227,14 +421,14 @@ input AdminServiceType_GetFileClassByClassIntIDCaasToMonolith_Input {
 }
 
 type Mutation {
-  AdminServiceType_AdminServiceType_BasicHttpBinding_IAdminService_CreateFileClass(CreateFileClass: AdminServiceType_CreateFileClass_Input): AdminServiceType_CreateFileClassResponse
-  AdminServiceType_AdminServiceType_BasicHttpBinding_IAdminService_UpdateFileClass(UpdateFileClass: AdminServiceType_UpdateFileClass_Input): JSON
-  AdminServiceType_AdminServiceType_BasicHttpBinding_IAdminService_DeleteFileClass(DeleteFileClass: AdminServiceType_DeleteFileClass_Input): JSON
-  AdminServiceType_AdminServiceType_BasicHttpBinding_IAdminService_DeleteEntityClass(DeleteEntityClass: AdminServiceType_DeleteEntityClass_Input): JSON
+  AdminServiceType_AdminServiceType_BasicHttpBinding_IAdminService_CreateFileClass(CreateFileClass: AdminServiceType_CreateFileClass_Input): AdminServiceType_CreateFileClassResponse @soap(elementName: "CreateFileClassResponse", bindingNamespace: "http://Pfx.Net/Document/IAdminService", endpoint: "http://[::]/AdminServiceType", subgraph: "example2", soapNamespace: "http://www.w3.org/2003/05/soap-envelope", soapAction: "http://Pfx.Net/Document/IAdminService/IAdminService/CreateFileClass")
+  AdminServiceType_AdminServiceType_BasicHttpBinding_IAdminService_UpdateFileClass(UpdateFileClass: AdminServiceType_UpdateFileClass_Input): JSON @soap(elementName: "UpdateFileClassResponse", bindingNamespace: "http://Pfx.Net/Document/IAdminService", endpoint: "http://[::]/AdminServiceType", subgraph: "example2", soapNamespace: "http://www.w3.org/2003/05/soap-envelope", soapAction: "http://Pfx.Net/Document/IAdminService/IAdminService/UpdateFileClass")
+  AdminServiceType_AdminServiceType_BasicHttpBinding_IAdminService_DeleteFileClass(DeleteFileClass: AdminServiceType_DeleteFileClass_Input): JSON @soap(elementName: "DeleteFileClassResponse", bindingNamespace: "http://Pfx.Net/Document/IAdminService", endpoint: "http://[::]/AdminServiceType", subgraph: "example2", soapNamespace: "http://www.w3.org/2003/05/soap-envelope", soapAction: "http://Pfx.Net/Document/IAdminService/IAdminService/DeleteFileClass")
+  AdminServiceType_AdminServiceType_BasicHttpBinding_IAdminService_DeleteEntityClass(DeleteEntityClass: AdminServiceType_DeleteEntityClass_Input): JSON @soap(elementName: "DeleteEntityClassResponse", bindingNamespace: "http://Pfx.Net/Document/IAdminService", endpoint: "http://[::]/AdminServiceType", subgraph: "example2", soapNamespace: "http://www.w3.org/2003/05/soap-envelope", soapAction: "http://Pfx.Net/Document/IAdminService/IAdminService/DeleteEntityClass")
 }
 
 type AdminServiceType_CreateFileClassResponse {
-  CreateFileClassResult: BigInt!
+  CreateFileClassResult: BigInt
 }
 
 input AdminServiceType_CreateFileClass_Input {
@@ -242,7 +436,7 @@ input AdminServiceType_CreateFileClass_Input {
 }
 
 input tns_FileClass_Input {
-  Mode: String
+  Mode: tns_EntityMode
   ClassIntID: BigInt
   CreatedBy: String
   CreatedDtTm: DateTime
@@ -253,7 +447,7 @@ input tns_FileClass_Input {
   LastUpdatedDtTm: DateTime
   Name: String
   NeedANotification: Boolean
-  PeriodType: String
+  PeriodType: tns_PeriodType
   PreventPublishFlg: Boolean
   Retention: Int
   RetentionChanged: String
@@ -266,11 +460,11 @@ input tns_EntityClassList_Input {
 }
 
 input tns_EntityClass_Input {
-  Mode: String
+  Mode: tns_EntityMode
   ClassIntID: BigInt
   EntityClassIntID: BigInt
   EntityIntID: BigInt
-  EntityType: String
+  EntityType: tns_EntityType
   FirmIntID: BigInt
 }
 
@@ -279,16 +473,16 @@ input tns_FileSubclassList_Input {
 }
 
 input tns_FileSubclass_Input {
-  Mode: String
+  Mode: tns_EntityMode
   ClassIntID: BigInt
   CreatedBy: String
   CreatedDtTm: DateTime
-  EffectivePeriodType: String
+  EffectivePeriodType: tns_PeriodType
   EffectiveRetention: Int
   LastUpdatedBy: String
   LastUpdatedDtTm: DateTime
   Name: String
-  PeriodType: String
+  PeriodType: tns_PeriodType
   Permanent: Boolean
   Retention: Int
   RetentionChanged: String
@@ -307,5 +501,112 @@ input AdminServiceType_DeleteFileClass_Input {
 
 input AdminServiceType_DeleteEntityClass_Input {
   entityclassIntID: BigInt
-}"
+}
+
+input SOAPHeaders {
+  namespace: String
+  alias: String
+  headers: ObjMap
+}
+
+scalar ObjMap"
+`;
+
+exports[`Examples should generate schema for greeting: greeting 1`] = `
+"schema @transport(kind: "soap", subgraph: "greeting") {
+  query: Query
+  mutation: Mutation
+}
+
+directive @soap(elementName: String, bindingNamespace: String, endpoint: String, subgraph: String, bodyAlias: String, soapHeaders: SOAPHeaders, soapAction: String, soapNamespace: String) on FIELD_DEFINITION
+
+type Query {
+  placeholder: Void
+}
+
+"""Represents NULL values"""
+scalar Void
+
+type Mutation {
+  NumberConversion_NumberConversion_NumberConversionSoap_NumberToWords(NumberToWords: NumberConversion_NumberToWords_Input): NumberConversion_NumberToWordsResponse @soap(elementName: "NumberToWordsResponse", bindingNamespace: "http://www.dataaccess.com/webservicesserver/", endpoint: "https://www.dataaccess.com/webservicesserver/NumberConversion.wso", subgraph: "greeting", soapNamespace: "http://schemas.xmlsoap.org/soap/envelope/")
+  NumberConversion_NumberConversion_NumberConversionSoap_NumberToDollars(NumberToDollars: NumberConversion_NumberToDollars_Input): NumberConversion_NumberToDollarsResponse @soap(elementName: "NumberToDollarsResponse", bindingNamespace: "http://www.dataaccess.com/webservicesserver/", endpoint: "https://www.dataaccess.com/webservicesserver/NumberConversion.wso", subgraph: "greeting", soapNamespace: "http://schemas.xmlsoap.org/soap/envelope/")
+}
+
+type NumberConversion_NumberToWordsResponse {
+  NumberToWordsResult: String
+}
+
+input NumberConversion_NumberToWords_Input {
+  ubiNum: BigInt
+}
+
+"""
+The \`BigInt\` scalar type represents non-fractional signed whole numeric values.
+"""
+scalar BigInt
+
+type NumberConversion_NumberToDollarsResponse {
+  NumberToDollarsResult: String
+}
+
+input NumberConversion_NumberToDollars_Input {
+  dNum: Float
+}
+
+input SOAPHeaders {
+  namespace: String
+  alias: String
+  headers: ObjMap
+}
+
+scalar ObjMap"
+`;
+
+exports[`Examples should generate schema for tempconvert: tempconvert 1`] = `
+"schema @transport(kind: "soap", subgraph: "tempconvert") {
+  query: Query
+  mutation: Mutation
+}
+
+directive @soap(elementName: String, bindingNamespace: String, endpoint: String, subgraph: String, bodyAlias: String, soapHeaders: SOAPHeaders, soapAction: String, soapNamespace: String) on FIELD_DEFINITION
+
+type Query {
+  placeholder: Void
+}
+
+"""Represents NULL values"""
+scalar Void
+
+type Mutation {
+  tns_TempConvert_TempConvertSoap_FahrenheitToCelsius(FahrenheitToCelsius: tns_FahrenheitToCelsius_Input): tns_FahrenheitToCelsiusResponse @soap(elementName: "FahrenheitToCelsiusResponse", bindingNamespace: "https://www.w3schools.com/xml/", endpoint: "http://www.w3schools.com/xml/tempconvert.asmx", subgraph: "tempconvert", soapNamespace: "http://www.w3.org/2003/05/soap-envelope", soapAction: "https://www.w3schools.com/xml/FahrenheitToCelsius")
+  tns_TempConvert_TempConvertSoap_CelsiusToFahrenheit(CelsiusToFahrenheit: tns_CelsiusToFahrenheit_Input): tns_CelsiusToFahrenheitResponse @soap(elementName: "CelsiusToFahrenheitResponse", bindingNamespace: "https://www.w3schools.com/xml/", endpoint: "http://www.w3schools.com/xml/tempconvert.asmx", subgraph: "tempconvert", soapNamespace: "http://www.w3.org/2003/05/soap-envelope", soapAction: "https://www.w3schools.com/xml/CelsiusToFahrenheit")
+  tns_TempConvert_TempConvertSoap12_FahrenheitToCelsius(FahrenheitToCelsius: tns_FahrenheitToCelsius_Input): tns_FahrenheitToCelsiusResponse @soap(elementName: "FahrenheitToCelsiusResponse", bindingNamespace: "https://www.w3schools.com/xml/", endpoint: "http://www.w3schools.com/xml/tempconvert.asmx", subgraph: "tempconvert", soapNamespace: "http://www.w3.org/2003/05/soap-envelope", soapAction: "https://www.w3schools.com/xml/FahrenheitToCelsius")
+  tns_TempConvert_TempConvertSoap12_CelsiusToFahrenheit(CelsiusToFahrenheit: tns_CelsiusToFahrenheit_Input): tns_CelsiusToFahrenheitResponse @soap(elementName: "CelsiusToFahrenheitResponse", bindingNamespace: "https://www.w3schools.com/xml/", endpoint: "http://www.w3schools.com/xml/tempconvert.asmx", subgraph: "tempconvert", soapNamespace: "http://www.w3.org/2003/05/soap-envelope", soapAction: "https://www.w3schools.com/xml/CelsiusToFahrenheit")
+  tns_TempConvert_TempConvertHttpPost_FahrenheitToCelsius(Fahrenheit: String = ""): String @soap(elementName: "string", bindingNamespace: "https://www.w3schools.com/xml/", endpoint: "http://www.w3schools.com/xml/tempconvert.asmx", subgraph: "tempconvert", soapNamespace: "http://www.w3.org/2003/05/soap-envelope")
+  tns_TempConvert_TempConvertHttpPost_CelsiusToFahrenheit(Celsius: String = ""): String @soap(elementName: "string", bindingNamespace: "https://www.w3schools.com/xml/", endpoint: "http://www.w3schools.com/xml/tempconvert.asmx", subgraph: "tempconvert", soapNamespace: "http://www.w3.org/2003/05/soap-envelope")
+}
+
+type tns_FahrenheitToCelsiusResponse {
+  FahrenheitToCelsiusResult: String
+}
+
+input tns_FahrenheitToCelsius_Input {
+  Fahrenheit: String
+}
+
+type tns_CelsiusToFahrenheitResponse {
+  CelsiusToFahrenheitResult: String
+}
+
+input tns_CelsiusToFahrenheit_Input {
+  Celsius: String
+}
+
+input SOAPHeaders {
+  namespace: String
+  alias: String
+  headers: ObjMap
+}
+
+scalar ObjMap"
 `;

@@ -1,26 +1,25 @@
 /* eslint-disable import/no-nodejs-modules */
-import { promises } from 'fs';
+import { promises as fsPromises } from 'fs';
+import { globalAgent } from 'https';
 import { join } from 'path';
 import { parse } from 'graphql';
-import { MeshFetch } from '@graphql-mesh/types';
+import type { MeshFetch } from '@graphql-mesh/types';
 import { printSchemaWithDirectives } from '@graphql-tools/utils';
 import { fetch } from '@whatwg-node/fetch';
-import { createExecutorFromSchemaAST, SOAPLoader } from '../src';
-
-const { readFile } = promises;
+import { dummyLogger as logger } from '../../../testing/dummyLogger';
+import { createExecutorFromSchemaAST, SOAPLoader } from '../src/index.js';
 
 describe('SOAP Loader', () => {
-  it('should generate the schema correctly', async () => {
-    const soapLoader = new SOAPLoader({
-      fetch,
-    });
-    await soapLoader.fetchWSDL('https://www.w3schools.com/xml/tempconvert.asmx?WSDL');
-    const schema = soapLoader.buildSchema();
-    expect(printSchemaWithDirectives(schema)).toMatchSnapshot();
+  afterEach(() => {
+    globalAgent.destroy();
   });
-  it('should execute SOAP calls correctly', async () => {
+  // TODO: Implement this locally later
+  // Now E2E tests have it covered
+  it.skip('should execute SOAP calls correctly', async () => {
     const soapLoader = new SOAPLoader({
+      subgraphName: 'Test',
       fetch,
+      logger,
     });
     await soapLoader.fetchWSDL('https://www.crcind.com/csp/samples/SOAP.Demo.cls?WSDL');
     const schema = soapLoader.buildSchema();
@@ -40,9 +39,14 @@ describe('SOAP Loader', () => {
 
   it('should create executor for a service with mutations and query placeholder', async () => {
     const soapLoader = new SOAPLoader({
+      subgraphName: 'Test',
       fetch,
+      logger,
     });
-    const example1Wsdl = await readFile(join(__dirname, './fixtures/greeting.wsdl'), 'utf8');
+    const example1Wsdl = await fsPromises.readFile(
+      join(__dirname, './fixtures/greeting.wsdl'),
+      'utf8',
+    );
     await soapLoader.loadWSDL(example1Wsdl);
     const schema = soapLoader.buildSchema();
     expect(printSchemaWithDirectives(schema)).toMatchSnapshot();

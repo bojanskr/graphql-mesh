@@ -1,4 +1,4 @@
-import { GraphQLInputType, GraphQLResolveInfo } from 'graphql';
+import type { GraphQLInputType, GraphQLResolveInfo } from 'graphql';
 import { stringInterpolator } from './index.js';
 
 export type ResolverData<TParent = any, TArgs = any, TContext = any, TResult = any> = {
@@ -38,8 +38,8 @@ export function parseInterpolationStrings(
       argTypeMap && varName in argTypeMap
         ? argTypeMap[varName]
         : interpolationKeyParts.length > 2
-        ? 'JSON'
-        : 'ID';
+          ? 'JSON'
+          : 'ID';
     switch (initialObject) {
       case 'args':
         args[varName] = {

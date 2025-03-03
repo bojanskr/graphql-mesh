@@ -1,11 +1,13 @@
 name: test
 on:
   pull_request:
-    branches:
-      - master
   push:
     branches:
       - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   CI: true
@@ -14,13 +16,39 @@ env:
   LC_ALL: en-US
   REDIS_HOST: localhost
   REDIS_PORT: 6379
+  APOLLO_ELV2_LICENSE: accept
+  NODE_NO_WARNINGS: 1
+  YARN_ENABLE_HARDENED_MODE: 0
+
 jobs:
-  lint:
-    uses: the-guild-org/shared-config/.github/workflows/lint.yml@main
-    with:
-      script: yarn prettier:check && yarn ci:lint
-    secrets:
-      githubToken: ${{ secrets.GITHUB_TOKEN }}
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - uses: the-guild-org/shared-config/setup@v1
+        name: set up env
+        with:
+          node-version-file: .node-version
+        env:
+          YARN_ENABLE_HARDENED_MODE: 1
+      - name: Prepare for build
+        run: yarn prebuild
+      - name: Format
+        run: yarn prettier:check
+      - name: Lint
+        run: yarn ci:lint && yarn lint
+      - name: typecheck
+        run: yarn typecheck
+      - name: Build
+        run: yarn build
+      - name: Node.js integrity check
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: yarn bob check
 
   unit:
     name: unit / node ${{matrix.node-version}}
@@ -29,34 +57,49 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [16, 18]
-
+        node-version:
+          - 18
+          - 20
+          - 22
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - uses: the-guild-org/shared-config/setup@main
-        name: setup env
+      - uses: the-guild-org/shared-config/setup@v1
+        name: set up env
         with:
-          nodeVersion: ${{matrix.node-version}}
+          node-version: ${{matrix.node-version}}
 
       - name: Cache Jest
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: .cache/jest
-          key: ${{ runner.os }}-${{matrix.node-version}}-jest-unit-${{ hashFiles('yarn.lock') }}
+          key: jest-unit-${{ runner.os }}-${{matrix.node-version}}-${{ hashFiles('yarn.lock') }}
           restore-keys: |
-            ${{runner.os}}-${{matrix.node-version}}-jest-unit-
+            jest-unit-${{runner.os}}-${{matrix.node-version}}-
+            jest-unit-${{runner.os}}-
+            jest-unit-
+            jest-
 
-      - name: Remove node-libcurl
-        run: rm -rf node_modules/node-libcurl
+      - name: Generate config schema
+        run: yarn generate-config-schema
+
+      - name: Prepare for build
+        run: yarn prebuild
 
       - name: Run Tests
-        uses: nick-fields/retry@v2
+        uses: nick-fields/retry@v3
         with:
           timeout_minutes: 10
           max_attempts: 3
           command: yarn test
+
+      - name: Run Leak Tests
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: yarn test:leak
 
   integration:
     name: integration / node ${{matrix.node-version}}
@@ -65,7 +108,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [16, 18]
+        node-version:
+          - 18
+          - 20
+          - 22
     # Service containers to run with `runner-job`
     services:
       # Label used to access the service container
@@ -103,21 +149,24 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - uses: the-guild-org/shared-config/setup@main
-        name: setup env
+      - uses: the-guild-org/shared-config/setup@v1
+        name: set up env
         with:
-          nodeVersion: ${{matrix.node-version}}
+          node-version: ${{matrix.node-version}}
 
       - name: Cache Jest
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: .cache/jest
           key:
-            ${{ runner.os }}-${{matrix.node-version}}-jest-integration-${{ hashFiles('yarn.lock') }}
+            jest-integration-${{ runner.os }}-${{matrix.node-version}}-${{ hashFiles('yarn.lock') }}
           restore-keys: |
-            ${{runner.os}}-${{matrix.node-version}}-jest-integration-
+            jest-integration-${{runner.os}}-${{matrix.node-version}}-
+            jest-integration-${{runner.os}}-
+            jest-integration-
+            jest-
 
       - name: Download Postgres Dump
         run:
@@ -125,7 +174,7 @@ jobs:
           https://raw.githubusercontent.com/morenoh149/postgresDBSamples/master/worldDB-1.0/world.sql
           -o /tmp/backup.sql'
       - name: Load Postgres Data
-        uses: tj-actions/pg-restore@v4.10
+        uses: tj-actions/pg-restore@v6.0
         with:
           database_url: 'postgres://postgres:docker@localhost:5432/postgres'
           backup_file: '/tmp/backup.sql'
@@ -133,111 +182,94 @@ jobs:
         run: yarn build
       - name: Build Test Artifacts
         run: yarn build-test-artifacts
-      - name: Test
-        run: yarn test:integration
-
-  integration-leak:
-    name: integration / leak / node ${{matrix.node-version}}
-    timeout-minutes: 60
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        node-version: [16, 18]
-    # Service containers to run with `runner-job`
-    services:
-      # Label used to access the service container
-      postgres:
-        # Docker Hub image
-        image: postgres
-        # Provide the password for postgres
-        env:
-          POSTGRES_PASSWORD: docker
-        # Set health checks to wait until postgres has started
-        options: >-
-          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-        ports:
-          # Maps tcp port 5432 on service container to the host
-          - 5432:5432
-      mysql:
-        image: genschsa/mysql-employees
-        env:
-          MYSQL_ROOT_PASSWORD: passwd
-        ports:
-          - 33306:3306
-        options:
-          --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s
-          --health-retries=3
-      # Label used to access the service container
-      redis:
-        # Docker Hub image
-        image: redis
-        # Set health checks to wait until redis has started
-        options: >-
-          --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
-        ports:
-          # Maps port 6379 on service container to the host
-          - 6379:6379
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - uses: the-guild-org/shared-config/setup@main
-        name: setup env
+      - name: Run Integration Tests
+        uses: nick-fields/retry@v3
         with:
-          nodeVersion: ${{matrix.node-version}}
-
-      - name: Cache Jest
-        uses: actions/cache@v3
-        with:
-          path: .cache/jest
-          key:
-            ${{ runner.os }}-${{matrix.node-version}}-jest-integration-leak-${{
-            hashFiles('yarn.lock') }}
-          restore-keys: |
-            ${{runner.os}}-${{matrix.node-version}}-jest-integration-leak-
-
-      - name: Download Postgres Dump
-        run:
-          'curl
-          https://raw.githubusercontent.com/morenoh149/postgresDBSamples/master/worldDB-1.0/world.sql
-          -o /tmp/backup.sql'
-      - name: Load Postgres Data
-        uses: tj-actions/pg-restore@v4.10
-        with:
-          database_url: 'postgres://postgres:docker@localhost:5432/postgres'
-          backup_file: '/tmp/backup.sql'
-      - name: Build
-        run: yarn build
-      - name: Build Test Artifacts
-        run: yarn build-test-artifacts
-      - name: Remove node-libcurl
-        run: rm -rf node_modules/node-libcurl
-      - name: Run Tests
-        uses: nick-fields/retry@v2
+          timeout_minutes: 10
+          max_attempts: 3
+          command: yarn test:integration
+      - name: Run Leak Tests
+        if: matrix.node-version == 18
+        uses: nick-fields/retry@v3
         with:
           timeout_minutes: 10
           max_attempts: 3
           command: yarn test:integration:leak
 
-  integrity-check:
-    name: integrity-check / node ${{matrix.node-version}}
-    timeout-minutes: 60
+  e2e:
+    name: e2e / node v${{matrix.node-version}}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        node-version: [16, 18]
+        node-version: [18, 20, 22]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: hash docker images
+        if: runner.os == 'Linux'
+        id: hash-docker-images
+        # get all "image: '" occurrences in the e2e tests and hash them
+        run: |
+          echo "result=$(grep -r -h "image: '" e2e | shasum | base64)" >> "$GITHUB_OUTPUT"
+        shell: bash
+      - name: cache docker images
+        if: runner.os == 'Linux'
+        uses: ScribeMD/docker-cache@0.5.0
+        continue-on-error: true
+        with:
+          key: docker-images-${{ runner.os }}-${{ steps.hash-docker-images.outputs.result }}
+      - name: set up env
+        uses: the-guild-org/shared-config/setup@v1
+        with:
+          node-version: ${{matrix.node-version}}
+      - name: Cache Jest
+        uses: actions/cache@v4
+        with:
+          path: .cache/jest
+          key: jest-e2e-${{ runner.os }}-${{matrix.node-version}}-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            jest-e2e-${{runner.os}}-${{matrix.node-version}}-
+            jest-e2e-${{runner.os}}-
+            jest-e2e-
+            jest-
 
-      - uses: the-guild-org/shared-config/setup@main
+      - name: build
+        run: yarn build
+      - name: relink
+        run: yarn install
+      - name: Run E2E Tests
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 60
+          max_attempts: 5
+          command: yarn test:e2e
+
+  apollo-federation-compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - uses: the-guild-org/shared-config/setup@v1
         name: setup env
         with:
-          nodeVersion: ${{matrix.node-version}}
-      - name: Build
+          node-version-file: .node-version
+      - name: Install Rover
+        run: npm install -g @apollo/rover
+      - name: Build Packages
         run: yarn build
-      - name: Node.js integrity check
-        run: yarn bob check
+      - name: Run Mesh Compose
+        run: yarn workspace example-apollo-federation-compatibility mesh:compose
+      - name: Run Bundler
+        run: yarn workspace example-apollo-federation-compatibility build
+      - name: Apollo Federation Subgraph Compatibility
+        uses: apollographql/federation-subgraph-compatibility@v2
+        with:
+          workingDirectory: examples/v1-next/apollo-federation-compatibility
+          compose: docker-compose.yaml
+          schema: schema.graphql
+          path: /graphql
+          token: ${{ secrets.GITHUB_TOKEN }}
+          failOnWarning: true
+          failOnRequired: true
+          debug: true

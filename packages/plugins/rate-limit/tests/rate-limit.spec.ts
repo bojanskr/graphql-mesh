@@ -1,36 +1,23 @@
 /* eslint-disable import/no-extraneous-dependencies */
-import { execute, parse, specifiedRules, subscribe, validate } from 'graphql';
+import { setTimeout } from 'timers/promises';
+import { parse, specifiedRules, validate } from 'graphql';
 import { envelop, useEngine, useSchema } from '@envelop/core';
-import InMemoryLRUCache from '@graphql-mesh/cache-localforage';
-import { Logger } from '@graphql-mesh/types';
-import { defaultImportFn, DefaultLogger, PubSub } from '@graphql-mesh/utils';
+import InMemoryLRUCache from '@graphql-mesh/cache-inmemory-lru';
+import { normalizedExecutor } from '@graphql-tools/executor';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import useMeshRateLimit from '../src/index.js';
 
 describe('Rate Limit Plugin', () => {
-  let pubsub: PubSub;
-  let cache: InMemoryLRUCache;
-  let logger: Logger;
-
   const graphQLEnginePlugin = useEngine({
     parse,
     validate,
-    execute,
-    subscribe,
+    execute: normalizedExecutor,
+    subscribe: normalizedExecutor,
     specifiedRules,
   });
 
-  beforeEach(() => {
-    pubsub = new PubSub();
-    cache = new InMemoryLRUCache();
-    logger = new DefaultLogger('test-rate-limit');
-  });
-
-  afterEach(() => {
-    pubsub.publish('destroy', {} as any);
-  });
-
   it('should throw an error if the rate limit is exceeded', async () => {
+    using cache = new InMemoryLRUCache();
     let numberOfCalls = 0;
     const schema = makeExecutableSchema({
       typeDefs: /* GraphQL */ `
@@ -61,11 +48,7 @@ describe('Rate Limit Plugin', () => {
               identifier: '{context.userId}',
             },
           ],
-          logger,
           cache,
-          pubsub,
-          baseDir: __dirname,
-          importFn: defaultImportFn,
         }),
       ],
     });
@@ -97,12 +80,13 @@ describe('Rate Limit Plugin', () => {
 
     // Resolver shouldn't be called
     expect(numberOfCalls).toBe(5);
-    expect(result.data?.foo).toBeUndefined();
+    expect(result.data?.foo).toBeFalsy();
     const firstError = result.errors?.[0];
     expect(firstError.message).toBe('Rate limit of "Query.foo" exceeded for "1"');
     expect(firstError.path).toEqual(['foo']);
   });
   it('should reset tokens when the ttl is expired', async () => {
+    using cache = new InMemoryLRUCache();
     const schema = makeExecutableSchema({
       typeDefs: /* GraphQL */ `
         type Query {
@@ -130,10 +114,6 @@ describe('Rate Limit Plugin', () => {
             },
           ],
           cache,
-          pubsub,
-          logger,
-          baseDir: __dirname,
-          importFn: defaultImportFn,
         }),
       ],
     });
@@ -161,13 +141,14 @@ describe('Rate Limit Plugin', () => {
         },
       });
     }
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await setTimeout(1000);
     const result = await executeQuery();
 
     expect(result.errors?.length).toBeFalsy();
     expect(result.data?.foo).toBe('bar');
   });
   it('should provide different tokens for different identifiers', async () => {
+    using cache = new InMemoryLRUCache();
     const schema = makeExecutableSchema({
       typeDefs: /* GraphQL */ `
         type Query {
@@ -195,10 +176,6 @@ describe('Rate Limit Plugin', () => {
             },
           ],
           cache,
-          pubsub,
-          logger,
-          baseDir: __dirname,
-          importFn: defaultImportFn,
         }),
       ],
     });
@@ -237,7 +214,7 @@ describe('Rate Limit Plugin', () => {
         contextValue: await contextFactory(),
       });
 
-      expect(resultFails.data?.foo).toBeUndefined();
+      expect(resultFails.data?.foo).toBeFalsy();
       const firstError = resultFails.errors?.[0];
       expect(firstError.message).toBe(`Rate limit of "Query.foo" exceeded for "User${i}"`);
       expect(firstError.path).toEqual(['foo']);
@@ -246,6 +223,7 @@ describe('Rate Limit Plugin', () => {
     expect.assertions(8);
   });
   it('should return other fields even if one of them has fails', async () => {
+    using cache = new InMemoryLRUCache();
     const schema = makeExecutableSchema({
       typeDefs: /* GraphQL */ `
         type Query {
@@ -276,10 +254,6 @@ describe('Rate Limit Plugin', () => {
             },
           ],
           cache,
-          pubsub,
-          logger,
-          baseDir: __dirname,
-          importFn: defaultImportFn,
         }),
       ],
     });

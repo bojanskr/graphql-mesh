@@ -1,16 +1,23 @@
 import { OperationTypeNode } from 'graphql';
-import {
-  dereferenceObject,
-  handleUntitledDefinitions,
-  JSONSchemaObject,
-  resolvePath,
-} from 'json-machete';
-import { OpenAPIV2, OpenAPIV3 } from 'openapi-types';
+import type { JSONSchemaObject } from 'json-machete';
+import { dereferenceObject, handleUntitledDefinitions, resolvePath } from 'json-machete';
+import type { OpenAPIV2, OpenAPIV3 } from 'openapi-types';
 import { process } from '@graphql-mesh/cross-helpers';
-import { getInterpolatedHeadersFactory } from '@graphql-mesh/string-interpolation';
-import { Logger } from '@graphql-mesh/types';
-import { defaultImportFn, DefaultLogger, sanitizeNameForGraphQL } from '@graphql-mesh/utils';
+import { futureAdditions } from '@graphql-mesh/fusion-composition';
 import {
+  getInterpolatedHeadersFactory,
+  getInterpolationKeys,
+  stringInterpolator,
+} from '@graphql-mesh/string-interpolation';
+import type { Logger, MeshFetch } from '@graphql-mesh/types';
+import {
+  defaultImportFn,
+  DefaultLogger,
+  readFileOrUrl,
+  sanitizeNameForGraphQL,
+} from '@graphql-mesh/utils';
+import { asArray, createDeferred } from '@graphql-tools/utils';
+import type {
   HTTPMethod,
   JSONSchemaHTTPJSONOperationConfig,
   JSONSchemaOperationConfig,
@@ -18,21 +25,64 @@ import {
   JSONSchemaPubSubOperationConfig,
   OperationHeadersConfiguration,
 } from '@omnigraph/json-schema';
-import { OpenAPILoaderSelectQueryOrMutationFieldConfig } from './types.js';
+import type { SelectQueryOrMutationFieldConfig } from './types.js';
 import { getFieldNameFromPath } from './utils.js';
+
+export interface HATEOASConfig {
+  /**
+   * @default "rel"
+   */
+  linkNameIdentifier: string;
+  /**
+   * @default "href"
+   */
+  linkPathIdentifier: string;
+  /**
+   * @default "_links"
+   */
+  linkObjectIdentifier: string;
+  /**
+   * @default "x-links"
+   */
+  linkObjectExtensionIdentifier: string;
+}
+
+const defaultHateoasConfig: HATEOASConfig = {
+  linkNameIdentifier: 'rel',
+  linkPathIdentifier: 'href',
+  linkObjectIdentifier: '_links',
+  linkObjectExtensionIdentifier: 'x-links',
+};
 
 interface GetJSONSchemaOptionsFromOpenAPIOptionsParams {
   source: OpenAPIV3.Document | OpenAPIV2.Document | string;
   fallbackFormat?: 'json' | 'yaml' | 'js' | 'ts';
   cwd?: string;
-  fetch?: WindowOrWorkerGlobalScope['fetch'];
+  fetch?: MeshFetch;
   endpoint?: string;
   schemaHeaders?: Record<string, string>;
   operationHeaders?: OperationHeadersConfiguration;
   queryParams?: Record<string, any>;
-  selectQueryOrMutationField?: OpenAPILoaderSelectQueryOrMutationFieldConfig[];
+  selectQueryOrMutationField?: SelectQueryOrMutationFieldConfig[];
   logger?: Logger;
+  jsonApi?: boolean;
+  HATEOAS?: Partial<HATEOASConfig> | boolean;
 }
+
+type FutureLink = (
+  name: string,
+  oasDoc: OpenAPIV3.Document | OpenAPIV2.Document,
+  methodObjFieldMap: MethodObjFieldMap,
+) => boolean;
+
+type MethodObjFieldMap = WeakMap<
+  OpenAPIV2.OperationObject | OpenAPIV3.OperationObject,
+  JSONSchemaHTTPJSONOperationConfig & {
+    responseByStatusCode: Record<string, JSONSchemaOperationResponseConfig>;
+  }
+>;
+
+const futureLinks = new Set<FutureLink>();
 
 export async function getJSONSchemaOptionsFromOpenAPIOptions(
   name: string,
@@ -47,16 +97,40 @@ export async function getJSONSchemaOptionsFromOpenAPIOptions(
     queryParams = {},
     selectQueryOrMutationField = [],
     logger = new DefaultLogger('getJSONSchemaOptionsFromOpenAPIOptions'),
+    jsonApi,
+    HATEOAS,
   }: GetJSONSchemaOptionsFromOpenAPIOptionsParams,
 ) {
-  const fieldTypeMap: Record<string, OpenAPILoaderSelectQueryOrMutationFieldConfig['fieldName']> =
-    {};
+  const hateOasConfig: HATEOASConfig | false =
+    HATEOAS === true
+      ? defaultHateoasConfig
+      : HATEOAS === false
+        ? false
+        : {
+            ...defaultHateoasConfig,
+            ...HATEOAS,
+          };
+  if (typeof source === 'string') {
+    source = stringInterpolator.parse(source, {
+      env: process.env,
+    });
+  }
+  const fieldTypeMap: Record<string, SelectQueryOrMutationFieldConfig['fieldName']> = {};
   for (const { fieldName, type } of selectQueryOrMutationField) {
     fieldTypeMap[fieldName] = type;
   }
   const schemaHeadersFactory = getInterpolatedHeadersFactory(schemaHeaders);
   logger?.debug(`Fetching OpenAPI Document from ${source}`);
   let oasOrSwagger: OpenAPIV3.Document | OpenAPIV2.Document;
+  const readFileOrUrlForJsonMachete = (path: string, opts: { cwd: string }) =>
+    readFileOrUrl(path, {
+      cwd: opts.cwd,
+      fetch: fetchFn,
+      headers: schemaHeadersFactory({ env: process.env }),
+      importFn: defaultImportFn,
+      logger,
+      fallbackFormat,
+    });
   if (typeof source === 'string') {
     oasOrSwagger = (await dereferenceObject(
       {
@@ -64,19 +138,15 @@ export async function getJSONSchemaOptionsFromOpenAPIOptions(
       },
       {
         cwd,
-        headers: schemaHeadersFactory({ env: process.env }),
-        fetchFn,
-        importFn: defaultImportFn,
-        logger,
+        readFileOrUrl: readFileOrUrlForJsonMachete,
+        debugLogFn: logger.debug.bind(logger),
       },
     )) as any;
   } else {
     oasOrSwagger = await dereferenceObject(source, {
       cwd,
-      headers: schemaHeadersFactory({ env: process.env }),
-      fetchFn,
-      importFn: defaultImportFn,
-      logger,
+      readFileOrUrl: readFileOrUrlForJsonMachete,
+      debugLogFn: logger.debug.bind(logger),
     });
   }
 
@@ -89,9 +159,23 @@ export async function getJSONSchemaOptionsFromOpenAPIOptions(
     if (mapping) {
       for (const [key, value] of Object.entries(mapping)) {
         if (typeof value === 'string') {
-          const [, ref] = value.split('#');
-          (schema as any).discriminatorMapping = (schema as any).discriminatorMapping || {};
-          (schema as any).discriminatorMapping[key] = resolvePath(ref, oasOrSwagger);
+          const docIdentifier = value.startsWith('#') ? '#' : value.startsWith('..') ? '..' : null;
+          if (docIdentifier) {
+            const [, ref] = value.split(docIdentifier);
+            (schema as any).discriminatorMapping = (schema as any).discriminatorMapping || {};
+            (schema as any).discriminatorMapping[key] = resolvePath(ref, oasOrSwagger);
+          } else if (value.includes('/')) {
+            logger.warn(`Unsupported discriminator mapping: ${value}`);
+            continue;
+          } else {
+            const schemaObj = (oasOrSwagger as OpenAPIV3.Document).components?.schemas?.[value];
+            if (!schemaObj) {
+              logger.warn(`Invalid discriminator mapping: ${value}`);
+              continue;
+            }
+            (schema as any).discriminatorMapping = (schema as any).discriminatorMapping || {};
+            (schema as any).discriminatorMapping[key] = schemaObj;
+          }
         }
       }
     }
@@ -139,6 +223,12 @@ export async function getJSONSchemaOptionsFromOpenAPIOptions(
     OperationConfig
   >();
 
+  for (const futureLink of futureLinks) {
+    if (futureLink(name, oasOrSwagger, methodObjFieldMap)) {
+      break;
+    }
+  }
+
   for (const relativePath in oasOrSwagger.paths) {
     const pathObj = oasOrSwagger.paths[relativePath];
     const pathParameters = pathObj.parameters;
@@ -165,6 +255,7 @@ export async function getJSONSchemaOptionsFromOpenAPIOptions(
         schemaHeaders,
         operationHeaders,
         responseByStatusCode: {},
+        deprecated: methodObj.deprecated,
         ...(baseOperationArgTypeMap
           ? {
               argTypeMap: {
@@ -172,6 +263,7 @@ export async function getJSONSchemaOptionsFromOpenAPIOptions(
               },
             }
           : {}),
+        jsonApiFields: jsonApi,
       } as OperationConfig;
       operations.push(operationConfig);
       methodObjFieldMap.set(methodObj, operationConfig);
@@ -202,7 +294,12 @@ export async function getJSONSchemaOptionsFromOpenAPIOptions(
                 paramObj.schema = paramObj.schema || {
                   type: 'string',
                 };
-                paramObj.schema.default = queryParams[paramObj.name];
+                paramObj.required = false;
+                paramObj.schema.nullable = true;
+                const valueFromQueryParams = queryParams[paramObj.name];
+                if (valueFromQueryParams === 'string' && !valueFromQueryParams.includes('{')) {
+                  paramObj.schema.default = queryParams[paramObj.name];
+                }
               }
             }
             if ('explode' in paramObj) {
@@ -322,7 +419,12 @@ export async function getJSONSchemaOptionsFromOpenAPIOptions(
       if ('requestBody' in methodObj) {
         const requestBodyObj = methodObj.requestBody;
         if ('content' in requestBodyObj) {
-          const contentKey = Object.keys(requestBodyObj.content)[0];
+          // use json if available, otherwise fall back to the first type
+          const contentKeys = Object.keys(requestBodyObj.content);
+          const contentKey =
+            contentKeys.find(
+              contentKey => typeof contentKey === 'string' && contentKey.match('json'),
+            ) || contentKeys[0];
           const contentSchema = requestBodyObj.content[contentKey]?.schema;
           if (contentSchema && Object.keys(contentSchema).length > 0) {
             operationConfig.requestSchema = contentSchema as JSONSchemaObject;
@@ -400,7 +502,7 @@ export async function getJSONSchemaOptionsFromOpenAPIOptions(
           }
 
           for (const contentKey in responseObj.content) {
-            if (!mimeTypes.includes(contentKey)) {
+            if (!mimeTypes.some(mimeType => mimeType.includes(contentKey))) {
               continue;
             }
             schemaObj = responseObj.content[contentKey].schema as any;
@@ -470,6 +572,135 @@ export async function getJSONSchemaOptionsFromOpenAPIOptions(
           };
         }
 
+        if (
+          hateOasConfig &&
+          schemaObj?.properties?.[hateOasConfig.linkObjectIdentifier]?.properties
+        ) {
+          const links = (responseByStatusCode[responseKey].links ||= {});
+          await Promise.all(
+            (
+              Object.keys(
+                schemaObj.properties[hateOasConfig.linkObjectIdentifier].properties,
+              ) as string[]
+            ).map(async linkName => {
+              const xLinkObj = schemaObj.properties?.[hateOasConfig.linkObjectIdentifier]?.[
+                hateOasConfig.linkObjectExtensionIdentifier
+              ]?.find(link => link[hateOasConfig.linkNameIdentifier] === linkName);
+              if (xLinkObj) {
+                const xLinkHref = xLinkObj[hateOasConfig.linkPathIdentifier];
+                const cleanXLinkHref = xLinkHref.replace(/{[^}]+}/g, '');
+                const deferred = createDeferred<void>();
+                function findActualOperationAndPath(
+                  possibleName: string,
+                  possibleOasDoc: typeof oasOrSwagger,
+                  possibleMethodObjFieldMap: typeof methodObjFieldMap,
+                ) {
+                  let actualOperation: OpenAPIV3.OperationObject;
+                  let actualPath: string;
+                  for (const path in possibleOasDoc.paths) {
+                    const cleanPath = path.replace(/{[^}]+}/g, '');
+                    if (cleanPath === cleanXLinkHref) {
+                      actualPath = path;
+                      actualOperation = possibleOasDoc.paths[path][method];
+                      break;
+                    }
+                  }
+                  if (actualOperation) {
+                    const args = {};
+                    const paramsInLink = getInterpolationKeys(xLinkHref);
+                    const paramsInTarget = getInterpolationKeys(actualPath);
+                    for (const paramIndex in paramsInTarget) {
+                      args[paramsInTarget[paramIndex]] = `{root['${paramsInLink[paramIndex]}']}`;
+                    }
+                    if (possibleName === name) {
+                      links[linkName] = {
+                        get fieldName() {
+                          const linkOperationConfig =
+                            possibleMethodObjFieldMap.get(actualOperation);
+                          return linkOperationConfig.field;
+                        },
+                        args,
+                      };
+                    } else {
+                      const succesfulRes = actualOperation.responses[200];
+                      if (succesfulRes && 'content' in succesfulRes) {
+                        const contentKeys = Object.keys(succesfulRes.content);
+                        const contentKey =
+                          contentKeys.find(
+                            contentKey =>
+                              typeof contentKey === 'string' && contentKey.match('json'),
+                          ) || contentKeys[0];
+                        const content = succesfulRes.content[contentKey];
+                        const contentSchema = content.schema;
+                        let objectSchema: any;
+                        if ('$ref' in contentSchema) {
+                          throw new Error('Reference in response is not supported');
+                        } else {
+                          if (contentSchema.type === 'array') {
+                            const items = asArray(contentSchema.items);
+                            for (const item of items) {
+                              if ('$ref' in item) {
+                                throw new Error('Array of references is not supported');
+                              }
+                              if (item.title) {
+                                objectSchema = item;
+                                break;
+                              }
+                            }
+                          } else if (contentSchema.title) {
+                            objectSchema = contentSchema;
+                          }
+                        }
+                        if (objectSchema) {
+                          const properties: Record<string, JSONSchemaObject> = {};
+                          for (const paramName of paramsInTarget) {
+                            const propInTarget = objectSchema.properties[paramName];
+                            if (propInTarget) {
+                              properties[paramName] = propInTarget;
+                            }
+                          }
+                          schemaObj.properties[linkName] = {
+                            ...objectSchema,
+                            properties,
+                          };
+                          futureAdditions.push({
+                            targetTypeName: schemaObj.title,
+                            targetFieldName: linkName,
+                            sourceName: possibleName,
+                            sourceTypeName: 'Query',
+                            requiredSelectionSet: `{ ${paramsInLink.join(' ')} }`,
+                            get sourceFieldName() {
+                              const linkOperationConfig =
+                                possibleMethodObjFieldMap.get(actualOperation);
+                              return linkOperationConfig.field;
+                            },
+                            sourceArgs: args,
+                          });
+                        }
+                      }
+                    }
+                    futureLinks.delete(findActualOperationAndPath);
+                    deferred.resolve();
+                    return true;
+                  }
+                  return false;
+                }
+                setTimeout(() => {
+                  logger.warn(
+                    `Could not find operation for link ${linkName} in ${name} for ${xLinkHref}`,
+                  );
+                  futureLinks.delete(findActualOperationAndPath);
+                  deferred.resolve();
+                }, 5000);
+                if (!findActualOperationAndPath(name, oasOrSwagger, methodObjFieldMap)) {
+                  futureLinks.add(findActualOperationAndPath);
+                }
+                return deferred.promise;
+              }
+            }),
+          );
+        }
+
         if ('links' in responseObj) {
           const dereferencedLinkObj = await dereferenceObject(
             {
@@ -478,9 +709,7 @@ export async function getJSONSchemaOptionsFromOpenAPIOptions(
             {
               cwd,
               root: oasOrSwagger,
-              fetchFn,
-              logger,
-              headers: schemaHeaders,
+              readFileOrUrl: readFileOrUrlForJsonMachete,
             },
           );
           responseByStatusCode[responseKey].links = responseByStatusCode[responseKey].links || {};

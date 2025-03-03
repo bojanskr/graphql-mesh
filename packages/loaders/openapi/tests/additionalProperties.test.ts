@@ -1,15 +1,17 @@
-import { execute, GraphQLSchema, parse } from 'graphql';
-import { printSchemaWithDirectives } from '@graphql-tools/utils';
-import { createRouter, Response } from '@whatwg-node/router';
+import { createRouter, Response } from 'fets';
+import { GraphQLSchema, parse } from 'graphql';
+import { normalizedExecutor } from '@graphql-tools/executor';
+import { isAsyncIterable, printSchemaWithDirectives } from '@graphql-tools/utils';
 import { loadGraphQLSchemaFromOpenAPI } from '../src/loadGraphQLSchemaFromOpenAPI.js';
 
 describe('additionalProperties', () => {
   let schema: GraphQLSchema;
 
-  const router = createRouter();
-  router.get('/test', () => {
-    return new Response(
-      JSON.stringify({
+  const router = createRouter().route({
+    method: 'GET',
+    path: '/test',
+    handler: () =>
+      Response.json({
         id: 1,
         foo: {
           bar: 'baz',
@@ -24,7 +26,6 @@ describe('additionalProperties', () => {
           },
         },
       }),
-    );
   });
 
   beforeAll(async () => {
@@ -39,7 +40,7 @@ describe('additionalProperties', () => {
     expect(printSchemaWithDirectives(schema)).toMatchSnapshot('schema');
   });
   it('should return values correctly', async () => {
-    const result = await execute({
+    const result = await normalizedExecutor({
       schema,
       document: parse(/* GraphQL */ `
         query {

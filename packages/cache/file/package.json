@@ -1,10 +1,10 @@
 {
   "name": "@graphql-mesh/cache-file",
-  "version": "0.95.2",
+  "version": "0.103.22",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "Urigo/graphql-mesh",
+    "url": "ardatan/graphql-mesh",
     "directory": "packages/cache/file"
   },
   "license": "MIT",
@@ -32,14 +32,17 @@
   },
   "typings": "dist/typings/index.d.ts",
   "peerDependencies": {
-    "@graphql-mesh/cross-helpers": "^0.4.0",
-    "@graphql-mesh/types": "^0.95.2",
-    "@graphql-mesh/utils": "^0.95.2",
-    "graphql": "*",
-    "tslib": "^2.4.0"
+    "graphql": "*"
   },
   "dependencies": {
-    "dataloader": "2.2.2"
+    "@graphql-mesh/cross-helpers": "^0.4.10",
+    "@graphql-mesh/types": "^0.103.21",
+    "@graphql-mesh/utils": "^0.103.21",
+    "dataloader": "2.2.3",
+    "tslib": "^2.4.0"
+  },
+  "devDependencies": {
+    "graphql": "16.10.0"
   },
   "publishConfig": {
     "access": "public",

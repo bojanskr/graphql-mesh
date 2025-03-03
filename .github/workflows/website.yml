@@ -5,8 +5,13 @@ on:
     branches:
       - master
   pull_request:
-    branches:
-      - master
+
+env:
+  YARN_ENABLE_HARDENED_MODE: 0
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   deployment:
@@ -16,17 +21,18 @@ jobs:
       'push'
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: the-guild-org/shared-config/setup@main
-        name: setup env
+      - uses: the-guild-org/shared-config/setup@v1
+        name: set up env
         with:
-          nodeVersion: 18
-          packageManager: yarn
+          # node-version-file: .node-version
+          # Website build fails on Node.js 22.7.0, use `node-version-file` later
+          node-version: 22.6.0
 
-      - uses: the-guild-org/shared-config/website-cf@main
+      - uses: the-guild-org/shared-config/website-cf@v1
         name: build and deploy website
         env:
           NEXT_BASE_PATH: ${{ github.ref == 'refs/heads/master' && '/graphql/mesh' || '' }}
@@ -39,5 +45,5 @@ jobs:
           projectName: graphql-mesh
           prId: ${{ github.event.pull_request.number }}
           websiteDirectory: ./
-          buildScript: yarn build:website && cd website && yarn next export
+          buildScript: yarn build:website
           artifactDir: website/out

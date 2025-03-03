@@ -1,0 +1,20 @@
+{
+  "name": "@examples-v1-next/cfw-breweries",
+  "private": true,
+  "scripts": {
+    "compose": "node ../../../../packages/compose-cli/dist/esm/bin.js > ./src/supergraph.graphql.ts",
+    "start": "wrangler dev"
+  },
+  "dependencies": {
+    "@graphql-hive/gateway": "^1.8.0",
+    "@graphql-mesh/cache-cfw-kv": "workspace:^",
+    "@graphql-mesh/cache-localforage": "workspace:^",
+    "@graphql-mesh/compose-cli": "workspace:^",
+    "@graphql-mesh/plugin-response-cache": "^0.103.24",
+    "@omnigraph/json-schema": "workspace:^",
+    "graphql": "16.10.0"
+  },
+  "devDependencies": {
+    "wrangler": "3.111.0"
+  }
+}

@@ -24,7 +24,7 @@ describe('gRPC Example', () => {
       join(__dirname, '../example-queries/GetMovies.query.graphql'),
       'utf8',
     );
-    const result = await mesh.execute(GetMoviesQuery, undefined);
+    const result = await mesh.execute(GetMoviesQuery);
     expect(result).toMatchSnapshot('get-movies-grpc-example-result');
   });
   it('should fetch movies by cast as a stream correctly', async () => {
@@ -32,10 +32,21 @@ describe('gRPC Example', () => {
       join(__dirname, '../example-queries/MoviesByCast.stream.graphql'),
       'utf8',
     );
-    const result = await mesh.execute(MoviesByCastStream, undefined);
+    const result = await mesh.execute(MoviesByCastStream);
     let i = 0;
     for await (const item of result as AsyncIterable<any>) {
-      expect(item).toMatchSnapshot(`movies-by-cast-grpc-example-result-${i++}`);
+      expect(item).toMatchSnapshot(`movies-by-cast-grpc-example-result-stream-${i++}`);
+    }
+  });
+  it('should fetch movies by cast as a subscription correctly', async () => {
+    const MoviesByCastSubscription = await readFile(
+      join(__dirname, '../example-queries/MoviesByCast.subscription.graphql'),
+      'utf8',
+    );
+    const result = await mesh.execute(MoviesByCastSubscription);
+    let i = 0;
+    for await (const item of result as AsyncIterable<any>) {
+      expect(item).toMatchSnapshot(`movies-by-cast-grpc-example-result-subscription-${i++}`);
     }
   });
   afterAll(async () => {

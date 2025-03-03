@@ -1,25 +1,25 @@
 import { XMLParser } from 'fast-xml-parser';
+import type { GraphQLScalarType } from 'graphql';
 import {
   DirectiveLocation,
   GraphQLBoolean,
   GraphQLDirective,
   GraphQLFloat,
+  GraphQLInputObjectType,
   GraphQLInt,
-  GraphQLScalarType,
   GraphQLString,
 } from 'graphql';
-import {
+import type {
   AnyTypeComposer,
   EnumTypeComposer,
   EnumTypeComposerValueConfigDefinition,
-  GraphQLJSON,
   InputTypeComposer,
   InputTypeComposerFieldConfigMapDefinition,
   ObjectTypeComposer,
   ObjectTypeComposerFieldConfigDefinition,
   ScalarTypeComposer,
-  SchemaComposer,
 } from 'graphql-compose';
+import { GraphQLJSON, SchemaComposer } from 'graphql-compose';
 import {
   GraphQLBigInt,
   GraphQLByte,
@@ -27,6 +27,10 @@ import {
   GraphQLDateTime,
   GraphQLDuration,
   GraphQLHexadecimal,
+  GraphQLNegativeInt,
+  GraphQLNonNegativeInt,
+  GraphQLNonPositiveInt,
+  GraphQLPositiveInt,
   GraphQLTime,
   GraphQLUnsignedInt,
   GraphQLURL,
@@ -34,13 +38,18 @@ import {
   RegularExpression,
 } from 'graphql-scalars';
 import { process } from '@graphql-mesh/cross-helpers';
+import type { ResolverDataBasedFactory } from '@graphql-mesh/string-interpolation';
+import { getInterpolatedHeadersFactory } from '@graphql-mesh/string-interpolation';
+import { ObjMapScalar } from '@graphql-mesh/transport-common';
+import type { Logger, MeshFetch } from '@graphql-mesh/types';
 import {
-  getInterpolatedHeadersFactory,
-  ResolverDataBasedFactory,
-} from '@graphql-mesh/string-interpolation';
-import { MeshFetch } from '@graphql-mesh/types';
-import { sanitizeNameForGraphQL } from '@graphql-mesh/utils';
-import {
+  defaultImportFn,
+  DefaultLogger,
+  readFileOrUrl,
+  sanitizeNameForGraphQL,
+} from '@graphql-mesh/utils';
+import { fetch as defaultFetchFn } from '@whatwg-node/fetch';
+import type {
   WSDLBinding,
   WSDLDefinition,
   WSDLMessage,
@@ -55,13 +64,59 @@ import {
   XSSchema,
   XSSimpleType,
 } from './types.js';
-import { PARSE_XML_OPTIONS, SoapAnnotations } from './utils.js';
+import type { SoapAnnotations } from './utils.js';
+import { PARSE_XML_OPTIONS } from './utils.js';
 
 export interface SOAPLoaderOptions {
-  fetch: MeshFetch;
+  subgraphName: string;
+  fetch?: MeshFetch;
+  logger?: Logger;
   schemaHeaders?: Record<string, string>;
   operationHeaders?: Record<string, string>;
+  soapHeaders?: SOAPHeaders;
+  endpoint?: string;
+  cwd?: string;
+  bodyAlias?: string;
+  soapNamespace?: string;
 }
+
+export interface SOAPHeaders {
+  /**
+   * The namespace of the SOAP Header
+   *
+   * @example http://www.example.com/namespace
+   */
+  namespace: string;
+  /**
+   * The name of the alias to be used in the envelope
+   *
+   * @default header
+   */
+  alias?: string;
+  /**
+   * The content of the SOAP Header
+   *
+   * @example { "key": "value" }
+   *
+   * then the content will be `<key>value</key>` in XML
+   */
+  headers: unknown;
+}
+
+const SOAPHeadersInput = new GraphQLInputObjectType({
+  name: 'SOAPHeaders',
+  fields: {
+    namespace: {
+      type: GraphQLString,
+    },
+    alias: {
+      type: GraphQLString,
+    },
+    headers: {
+      type: ObjMapScalar,
+    },
+  },
+});
 
 const soapDirective = new GraphQLDirective({
   name: 'soap',
@@ -74,6 +129,21 @@ const soapDirective = new GraphQLDirective({
       type: GraphQLString,
     },
     endpoint: {
+      type: GraphQLString,
+    },
+    subgraph: {
+      type: GraphQLString,
+    },
+    bodyAlias: {
+      type: GraphQLString,
+    },
+    soapHeaders: {
+      type: SOAPHeadersInput,
+    },
+    soapAction: {
+      type: GraphQLString,
+    },
+    soapNamespace: {
       type: GraphQLString,
     },
   },
@@ -123,11 +193,27 @@ export class SOAPLoader {
   private namespaceTypePrefixMap = new Map<string, string>();
   public loadedLocations = new Map<string, WSDLObject | XSDObject>();
   private schemaHeadersFactory: ResolverDataBasedFactory<Record<string, string>>;
+  private fetchFn: MeshFetch;
+  private subgraphName: string;
+  private logger: Logger;
+  private endpoint?: string;
+  private cwd: string;
+  private soapHeaders: SOAPHeaders;
+  private bodyAlias?: string;
+  private soapNamespace: string;
 
-  constructor(private options: SOAPLoaderOptions) {
+  constructor(options: SOAPLoaderOptions) {
+    this.fetchFn = options.fetch || defaultFetchFn;
+    this.logger = options.logger || new DefaultLogger(options.subgraphName);
+    this.subgraphName = options.subgraphName;
     this.loadXMLSchemaNamespace();
     this.schemaComposer.addDirective(soapDirective);
     this.schemaHeadersFactory = getInterpolatedHeadersFactory(options.schemaHeaders || {});
+    this.endpoint = options.endpoint;
+    this.cwd = options.cwd;
+    this.soapHeaders = options.soapHeaders;
+    this.bodyAlias = options.bodyAlias;
+    this.soapNamespace = 'http://schemas.xmlsoap.org/soap/envelope/';
   }
 
   loadXMLSchemaNamespace() {
@@ -145,6 +231,11 @@ export class SOAPLoader {
       ['duration', GraphQLDuration],
       ['float', GraphQLFloat],
       ['int', GraphQLInt],
+      ['integer', GraphQLInt],
+      ['negativeInteger', GraphQLNegativeInt],
+      ['nonNegativeInteger', GraphQLNonNegativeInt],
+      ['nonPositiveInteger', GraphQLNonPositiveInt],
+      ['positiveInteger', GraphQLPositiveInt],
       ['hexBinary', GraphQLHexadecimal],
       ['long', GraphQLBigInt],
       ['gDay', GraphQLString],
@@ -315,13 +406,17 @@ export class SOAPLoader {
 
   async loadDefinition(definition: WSDLDefinition) {
     this.getNamespaceDefinitions(definition.attributes.targetNamespace).push(definition);
+    if (definition.attributes.soap12) {
+      this.soapNamespace = 'http://www.w3.org/2003/05/soap-envelope';
+    }
     const definitionAliasMap = this.getAliasMapFromAttributes(definition.attributes);
     const definitionNamespace = definition.attributes.targetNamespace;
     const typePrefix =
       definition.attributes.name ||
       [...definitionAliasMap.entries()].find(
         ([, namespace]) => namespace === definitionNamespace,
-      )[0];
+      )?.[0] ||
+      '';
     this.namespaceTypePrefixMap.set(definition.attributes.targetNamespace, typePrefix);
     if (definition.import) {
       for (const importObj of definition.import) {
@@ -415,11 +510,48 @@ export class SOAPLoader {
             const { type, elementName } = this.getOutputTypeForMessage(
               this.getNamespaceMessageMap(messageNamespace).get(messageName),
             );
+            const bindingOperationObject = bindingObj.operation.find(
+              operation => operation.attributes.name === operationName,
+            );
             const soapAnnotations: SoapAnnotations = {
               elementName,
               bindingNamespace,
-              endpoint: portObj.address[0].attributes.location,
+              endpoint: this.endpoint,
+              subgraph: this.subgraphName,
+              soapNamespace: this.soapNamespace,
             };
+            if (!soapAnnotations.endpoint && portObj.address) {
+              for (const address of portObj.address) {
+                if (address.attributes) {
+                  for (const attributeName in address.attributes) {
+                    const value = address.attributes[attributeName];
+                    if (value && attributeName.toLowerCase().endsWith('location')) {
+                      soapAnnotations.endpoint = value;
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+            if (bindingOperationObject?.operation) {
+              for (const bindingOperationObjectElem of bindingOperationObject.operation) {
+                if (bindingOperationObjectElem.attributes) {
+                  for (const attributeName in bindingOperationObjectElem.attributes) {
+                    const value = bindingOperationObjectElem.attributes[attributeName];
+                    if (value && attributeName.toLowerCase().endsWith('action')) {
+                      soapAnnotations.soapAction = value;
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+            if (this.bodyAlias) {
+              soapAnnotations.bodyAlias = this.bodyAlias;
+            }
+            if (this.soapHeaders) {
+              soapAnnotations.soapHeaders = this.soapHeaders;
+            }
             rootTC.addFields({
               [operationFieldName]: {
                 type,
@@ -502,10 +634,14 @@ export class SOAPLoader {
   private xmlParser = new XMLParser(PARSE_XML_OPTIONS);
 
   async fetchXSD(location: string, parentAliasMap = new Map<string, string>()) {
-    const response = await this.options.fetch(location, {
+    let xsdText = await readFileOrUrl<string>(location, {
+      allowUnknownExtensions: true,
+      cwd: this.cwd,
+      fetch: this.fetchFn,
+      importFn: defaultImportFn,
+      logger: this.logger,
       headers: this.schemaHeadersFactory({ env: process.env }),
     });
-    let xsdText = await response.text();
     xsdText = xsdText.split('xmlns:').join('namespace:');
     // WSDL Import is different than XS Import
     const xsdObj: XSDObject = this.xmlParser.parse(xsdText, PARSE_XML_OPTIONS);
@@ -535,7 +671,7 @@ export class SOAPLoader {
   }
 
   async fetchWSDL(location: string) {
-    const response = await this.options.fetch(location, {
+    const response = await this.fetchFn(location, {
       headers: this.schemaHeadersFactory({ env: process.env }),
     });
     const wsdlText = await response.text();
@@ -546,9 +682,8 @@ export class SOAPLoader {
   getAliasMapFromAttributes(attributes: XSSchema['attributes'] | WSDLDefinition['attributes']) {
     const aliasMap = new Map<string, string>();
     for (const attributeName in attributes) {
-      // @ts-expect-error - Weird TS error
       const attributeValue = attributes[attributeName];
-      if (attributeName !== 'targetNamespace' && attributeValue.startsWith('http')) {
+      if (attributeName !== 'targetNamespace') {
         aliasMap.set(attributeName, attributeValue);
       }
     }
@@ -564,7 +699,7 @@ export class SOAPLoader {
       const simpleTypeName = simpleType.attributes.name;
       const restrictionObj = simpleType.restriction[0];
       const prefix = this.namespaceTypePrefixMap.get(simpleTypeNamespace);
-      if (restrictionObj.attributes.base === 'string' && restrictionObj.enumeration) {
+      if (restrictionObj.enumeration) {
         const enumTypeName = `${prefix}_${simpleTypeName}`;
         const values: Record<string, Readonly<EnumTypeComposerValueConfigDefinition>> = {};
         for (const enumerationObj of restrictionObj.enumeration) {
@@ -735,9 +870,9 @@ export class SOAPLoader {
               };
             } else {
               if (elementObj.attributes?.ref) {
-                console.warn(`element.ref isn't supported yet.`);
+                this.logger.warn(`element.ref isn't supported yet.`);
               } else {
-                console.warn(`Element doesn't have a name in ${complexTypeName}. Ignoring...`);
+                this.logger.warn(`Element doesn't have a name in ${complexTypeName}. Ignoring...`);
               }
             }
           }
@@ -914,7 +1049,7 @@ export class SOAPLoader {
                   if (isPlural) {
                     outputTC = outputTC.getTypePlural();
                   }
-                  if (isNullable) {
+                  if (!isNullable) {
                     outputTC = outputTC.getTypeNonNull();
                   }
                   return outputTC;
@@ -922,9 +1057,9 @@ export class SOAPLoader {
               };
             } else {
               if (elementObj.attributes?.ref) {
-                console.warn(`element.ref isn't supported yet.`, elementObj.attributes?.ref);
+                this.logger.warn(`element.ref isn't supported yet.`, elementObj.attributes?.ref);
               } else {
-                console.warn(`Element doesn't have a name in ${complexTypeName}. Ignoring...`);
+                this.logger.warn(`Element doesn't have a name in ${complexTypeName}. Ignoring...`);
               }
             }
           }
@@ -1004,7 +1139,7 @@ export class SOAPLoader {
                     if (isPlural) {
                       outputTC = outputTC.getTypePlural();
                     }
-                    if (isNullable) {
+                    if (!isNullable) {
                       outputTC = outputTC.getTypeNonNull();
                     }
                     return outputTC;
@@ -1098,6 +1233,13 @@ export class SOAPLoader {
         },
       });
     }
-    return this.schemaComposer.buildSchema();
+    const schema = this.schemaComposer.buildSchema();
+    const schemaExts: any = (schema.extensions ||= {});
+    schemaExts.directives ||= {};
+    schemaExts.directives.transport = {
+      kind: 'soap',
+      subgraph: this.subgraphName,
+    };
+    return schema;
   }
 }

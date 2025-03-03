@@ -1,9 +1,11 @@
-import { dereferenceObject, healJSONSchema, JSONSchemaObject } from 'json-machete';
+import type { JSONSchemaObject } from 'json-machete';
+import { dereferenceObject, healJSONSchema } from 'json-machete';
 import { process } from '@graphql-mesh/cross-helpers';
 import { getInterpolatedHeadersFactory } from '@graphql-mesh/string-interpolation';
-import { Logger } from '@graphql-mesh/types';
+import type { Logger, MeshFetch } from '@graphql-mesh/types';
+import { defaultImportFn, readFileOrUrl } from '@graphql-mesh/utils';
 import { getReferencedJSONSchemaFromOperations } from './getReferencedJSONSchemaFromOperations.js';
-import { JSONSchemaOperationConfig } from './types.js';
+import type { JSONSchemaOperationConfig } from './types.js';
 
 export async function getDereferencedJSONSchemaFromOperations({
   operations,
@@ -19,7 +21,7 @@ export async function getDereferencedJSONSchemaFromOperations({
   operations: JSONSchemaOperationConfig[];
   cwd: string;
   logger: Logger;
-  fetchFn: WindowOrWorkerGlobalScope['fetch'];
+  fetchFn: MeshFetch;
   schemaHeaders?: Record<string, string>;
   ignoreErrorResponses?: boolean;
   endpoint: string;
@@ -29,6 +31,7 @@ export async function getDereferencedJSONSchemaFromOperations({
   const referencedJSONSchema = await getReferencedJSONSchemaFromOperations({
     operations,
     cwd,
+    logger,
     schemaHeaders,
     ignoreErrorResponses,
     fetchFn,
@@ -38,15 +41,25 @@ export async function getDereferencedJSONSchemaFromOperations({
   });
   logger.debug(`Dereferencing JSON Schema to resolve all $refs`);
   const schemaHeadersFactory = getInterpolatedHeadersFactory(schemaHeaders);
+  const dereferenceObjectLogger = logger.child('dereferenceObject');
+  const readFileOrUrlForJsonMachete = (path: string, opts: { cwd: string }) =>
+    readFileOrUrl(path, {
+      cwd: opts.cwd,
+      fetch: fetchFn,
+      logger: dereferenceObjectLogger,
+      headers: schemaHeadersFactory({ env: process.env }),
+      importFn: defaultImportFn,
+    });
   const fullyDeferencedSchema = await dereferenceObject(referencedJSONSchema, {
     cwd,
-    fetchFn,
-    logger: logger.child('dereferenceObject'),
-    headers: schemaHeadersFactory({ env: process.env }),
+    debugLogFn: dereferenceObjectLogger.debug.bind(dereferenceObjectLogger),
+    readFileOrUrl: readFileOrUrlForJsonMachete,
   });
   logger.debug(`Healing JSON Schema`);
-  const healedSchema = await healJSONSchema(fullyDeferencedSchema, {
-    logger: logger.child('healJSONSchema'),
-  });
+  const healJSONSchemaLogger = logger.child('healJSONSchema');
+  const healedSchema = await healJSONSchema(
+    fullyDeferencedSchema,
+    healJSONSchemaLogger.debug.bind(healJSONSchemaLogger),
+  );
   return healedSchema as JSONSchemaObject;
 }

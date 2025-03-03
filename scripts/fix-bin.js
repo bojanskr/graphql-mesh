@@ -10,7 +10,7 @@ const {
 const { resolve, join } = require('path');
 
 const absoluteExamplesDirPath = resolve(__dirname, '../examples');
-const absoluteGraphqlMeshBinPath = resolve(__dirname, '../packages/cli/dist/cjs/bin.js');
+const absoluteGraphqlMeshBinPath = resolve(__dirname, '../packages/legacy/cli/dist/cjs/bin.js');
 const dir = readdirSync(absoluteExamplesDirPath);
 dir.push('../website');
 for (const path of dir) {
@@ -19,12 +19,13 @@ for (const path of dir) {
     const execNames = ['mesh', 'gql-mesh', 'graphql-mesh'];
     for (const execName of execNames) {
       const targetPath = join(absolutePath, 'node_modules', '.bin', execName);
-      ensureSymlinkSync(absoluteGraphqlMeshBinPath, targetPath);
-      chmodSync(targetPath, '755');
-      const targetCmdPath = targetPath + '.cmd';
-      writeFileSync(
-        targetCmdPath,
-        `
+      try {
+        ensureSymlinkSync(absoluteGraphqlMeshBinPath, targetPath, 'file');
+        chmodSync(targetPath, '755');
+        const targetCmdPath = targetPath + '.cmd';
+        writeFileSync(
+          targetCmdPath,
+          `
 @IF EXIST "%~dp0\\node.exe" (
   "%~dp0\\node.exe"  "${absoluteGraphqlMeshBinPath}" %*
 ) ELSE (
@@ -33,8 +34,14 @@ for (const path of dir) {
   node  "${absoluteGraphqlMeshBinPath}" %*
 )
             `,
-      );
-      chmodSync(targetCmdPath, '755');
+        );
+        chmodSync(targetCmdPath, '755');
+      } catch (e) {
+        console.warn(
+          `Failed to create symlink for ${execName} from ${absoluteGraphqlMeshBinPath} to ${targetPath}`,
+          e,
+        );
+      }
     }
   }
 }

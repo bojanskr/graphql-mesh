@@ -1,0 +1,58 @@
+extend type Handler {
+  """
+  Handler for SOAP
+  """
+  soap: SoapHandler
+}
+
+type SoapHandler @md {
+  """
+  A url to your WSDL or generated SDL with annotations
+  """
+  source: String!
+  """
+  JSON object representing the Headers to add to the runtime of the API calls only for schema introspection
+  You can also provide `.js` or `.ts` file path that exports schemaHeaders as an object
+  """
+  schemaHeaders: Any
+  """
+  JSON object representing the Headers to add to the runtime of the API calls only for operation during runtime
+  """
+  operationHeaders: JSON
+  """
+  The name of the alias to be used in the envelope for body components
+
+  default: `body`
+  """
+  bodyAlias: String
+  """
+  SOAP Headers to be added to the request
+  """
+  soapHeaders: SOAPHeaders
+  """
+  The namespace of the SOAP envelope
+  By default, SOAP handler detects the SOAP version and if SOAP version is 1.1,
+  it uses `http://schemas.xmlsoap.org/soap/envelope/` namespace
+  If SOAP version is 1.2, it uses `http://www.w3.org/2003/05/soap-envelope` namespace
+  """
+  soapNamespace: String
+}
+
+type SOAPHeaders {
+  """
+  The name of the alias to be used in the envelope
+
+  default: `header`
+  """
+  alias: String
+  """
+  The namespace of the SOAP Header
+  For example: `http://www.example.com/namespace`
+  """
+  namespace: String!
+  """
+  The content of the SOAP Header
+  For example: { "key": "value" } then the content will be `<key>value</key>`
+  """
+  headers: JSON!
+}

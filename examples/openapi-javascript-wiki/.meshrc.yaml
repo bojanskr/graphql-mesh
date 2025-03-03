@@ -3,10 +3,11 @@ sources:
     handler:
       openapi:
         source: https://api.apis.guru/v2/specs/wikimedia.org/1.0.0/swagger.yaml
+        endpoint: https://wikimedia.org/api/rest_v1
 
 additionalTypeDefs: |
   extend type Query {
-    viewsInPastMonth(project: String!): BigInt!
+    viewsInPastMonth(project: String!): Int!
   }
 additionalResolvers:
   - ./additional-resolvers.ts

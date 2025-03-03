@@ -1,0 +1,62 @@
+{
+  "name": "@graphql-mesh/transform-naming-convention",
+  "version": "0.104.2",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "ardatan/graphql-mesh",
+    "directory": "packages/legacy/transforms/naming-convention"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "exports": {
+    ".": {
+      "require": {
+        "types": "./dist/typings/index.d.cts",
+        "default": "./dist/cjs/index.js"
+      },
+      "import": {
+        "types": "./dist/typings/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "default": {
+        "types": "./dist/typings/index.d.ts",
+        "default": "./dist/esm/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "typings": "dist/typings/index.d.ts",
+  "peerDependencies": {
+    "graphql": "*"
+  },
+  "dependencies": {
+    "@graphql-mesh/types": "^0.103.21",
+    "@graphql-mesh/utils": "^0.103.21",
+    "@graphql-tools/delegate": "^10.0.28",
+    "@graphql-tools/utils": "^10.8.0",
+    "@graphql-tools/wrap": "^10.0.28",
+    "change-case": "^4.1.2",
+    "graphql-scalars": "^1.22.4",
+    "lower-case": "^2.0.2",
+    "tslib": "^2.5.0",
+    "upper-case": "^2.0.2"
+  },
+  "devDependencies": {
+    "@graphql-mesh/cache-localforage": "^0.104.2",
+    "@graphql-tools/schema": "10.0.20",
+    "graphql": "16.10.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "directory": "dist"
+  },
+  "sideEffects": false,
+  "typescript": {
+    "definition": "dist/typings/index.d.ts"
+  }
+}

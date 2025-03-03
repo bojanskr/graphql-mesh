@@ -1,6 +1,6 @@
 import DataLoader from 'dataloader';
 import { path as pathModule } from '@graphql-mesh/cross-helpers';
-import { ImportFn, KeyValueCache } from '@graphql-mesh/types';
+import type { ImportFn, KeyValueCache } from '@graphql-mesh/types';
 import { pathExists, writeJSON } from '@graphql-mesh/utils';
 
 export default class FileCache<V = any> implements KeyValueCache<V> {
@@ -44,6 +44,11 @@ export default class FileCache<V = any> implements KeyValueCache<V> {
   async delete(name: string) {
     const json = await this.json$;
     delete json[name];
-    await this.writeDataLoader.load(name);
+    try {
+      await this.writeDataLoader.load(name);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

@@ -1,11 +1,11 @@
 // Place your settings in this file to overwrite default and user settings.
 {
   "yaml.schemas": {
-    "./packages/types/src/config-schema.json": ".meshrc.*"
+    "./packages/legacy/types/src/config-schema.json": ".meshrc.*"
   },
   "editor.tabSize": 2,
   "editor.insertSpaces": true,
-  "editor.rulers": [80],
+  "editor.rulers": [100],
   "editor.wordWrapColumn": 110,
   "prettier.semi": true,
   "files.trimTrailingWhitespace": true,

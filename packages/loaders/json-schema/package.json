@@ -1,10 +1,10 @@
 {
   "name": "@omnigraph/json-schema",
-  "version": "0.95.3",
+  "version": "0.108.23",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "Urigo/graphql-mesh",
+    "url": "ardatan/graphql-mesh",
     "directory": "packages/loaders/json-schema"
   },
   "license": "MIT",
@@ -32,32 +32,37 @@
   },
   "typings": "dist/typings/index.d.ts",
   "peerDependencies": {
-    "@graphql-mesh/cross-helpers": "^0.4.0",
-    "@graphql-mesh/types": "^0.95.2",
-    "@graphql-mesh/utils": "^0.95.2",
-    "@graphql-tools/utils": "^9.2.1 || ^10.0.0",
-    "graphql": "*",
-    "tslib": "^2.4.0"
+    "graphql": "*"
   },
   "dependencies": {
-    "@graphql-mesh/string-interpolation": "0.5.1",
-    "@json-schema-tools/meta-schema": "1.7.0",
-    "@whatwg-node/fetch": "^0.9.0",
-    "ajv": "8.12.0",
-    "ajv-formats": "2.1.1",
-    "dset": "3.1.2",
-    "graphql-compose": "9.0.10",
-    "graphql-scalars": "^1.22.2",
-    "json-machete": "0.95.2",
+    "@graphql-mesh/cross-helpers": "^0.4.10",
+    "@graphql-mesh/string-interpolation": "0.5.8",
+    "@graphql-mesh/transport-common": "^0.7.13",
+    "@graphql-mesh/transport-rest": "^0.8.23",
+    "@graphql-mesh/types": "^0.103.21",
+    "@graphql-mesh/utils": "^0.103.21",
+    "@graphql-tools/delegate": "^10.0.28",
+    "@graphql-tools/utils": "^10.8.0",
+    "@json-schema-tools/meta-schema": "^1.7.5",
+    "@whatwg-node/fetch": "^0.10.4",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^2.1.1",
+    "dset": "^3.1.4",
+    "graphql-compose": "^9.1.0",
+    "graphql-fields": "^2.0.3",
+    "graphql-scalars": "^1.22.4",
+    "json-machete": "^0.97.6",
     "pascal-case": "3.1.2",
-    "qs": "6.11.2",
-    "to-json-schema": "0.2.5",
+    "qs": "^6.14.0",
+    "to-json-schema": "^0.2.5",
+    "tslib": "^2.4.0",
     "url-join": "4.0.1"
   },
   "devDependencies": {
-    "@types/qs": "6.9.7",
-    "@types/to-json-schema": "0.2.1",
-    "@types/url-join": "4.0.1"
+    "@types/qs": "6.9.18",
+    "@types/to-json-schema": "0.2.4",
+    "@types/url-join": "4.0.3",
+    "graphql": "16.10.0"
   },
   "publishConfig": {
     "access": "public",

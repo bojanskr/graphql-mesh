@@ -1,6 +1,5 @@
 {
-  "name": "example-gcp",
-  "version": "0.5.4",
+  "name": "@examples/gcp-functions",
   "private": true,
   "main": "dist/index.js",
   "scripts": {
@@ -12,11 +11,11 @@
     "start": "functions-framework --target=mesh"
   },
   "dependencies": {
-    "@google-cloud/functions-framework": "3.3.0",
-    "@graphql-mesh/cli": "0.87.3",
-    "@graphql-mesh/json-schema": "0.95.3",
-    "@types/node": "18.17.11",
-    "graphql": "16.8.0",
-    "typescript": "5.1.6"
+    "@google-cloud/functions-framework": "3.4.5",
+    "@graphql-mesh/cli": "0.99.2",
+    "@graphql-mesh/json-schema": "0.108.24",
+    "@types/node": "22.13.8",
+    "graphql": "16.10.0",
+    "typescript": "^5.4.2"
   }
 }

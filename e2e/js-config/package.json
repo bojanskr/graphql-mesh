@@ -1,0 +1,9 @@
+{
+  "name": "@e2e/js-config",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@graphql-hive/gateway": "^1.8.0",
+    "graphql": "16.10.0"
+  }
+}
